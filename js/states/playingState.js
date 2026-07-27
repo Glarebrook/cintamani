@@ -51,7 +51,7 @@ export function createPlayingState({ world, hud, ctx }) {
     onFrame(dt) {
       world.itemManager.ensureFood(world.snake, world.enemyManager);
       world.itemManager.update(dt, world.snake, world.enemyManager);
-      world.projectileManager.update(dt, world.enemyManager);
+      world.projectileManager.update(dt, world.enemyManager, world.snake);
     },
 
     onTick() {
@@ -82,9 +82,6 @@ export function createPlayingState({ world, hud, ctx }) {
       const eaten = checkFoodPickup(world);
       if (eaten) {
         ItemTypes.get(eaten.type).onPickup(world, eaten);
-        world.itemManager.food = null;
-        world.itemManager.foodTimer = 0;
-        world.itemManager.spawnFood(world.snake, world.enemyManager);
       }
 
       world.snake.checkGrowth();

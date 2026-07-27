@@ -7,7 +7,7 @@ export class Snake {
     // 머리가 가장 오른쪽, 몸이 왼쪽으로 연장
     // segments[0] = 뱀-머리, segments[1] = 뱀-몸1, segments[2] = 뱀-몸2
     const initialSegments = [];
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 3; i++) {
       initialSegments.push({ x: cx - i, y: cy });
     }
     this.segments = initialSegments;

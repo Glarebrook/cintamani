@@ -1,4 +1,4 @@
-import { GRID_W, GRID_H, FOOD_INTERVAL_MS, CELL_SIZE } from '../config/constants.js';
+import { GRID_W, GRID_H, FOOD_INTERVAL_MS, FOOD_MAX_COUNT, CELL_SIZE } from '../config/constants.js';
 import { ItemTypes } from '../content/items/index.js';
 
 export class ItemManager {
@@ -7,35 +7,34 @@ export class ItemManager {
   }
 
   reset() {
-    this.food = null;        // 현재 필드의 먹이 (최대 1개)
+    this.foods = [];         // 현재 필드의 먹이들 (최대 FOOD_MAX_COUNT개)
     this.foodTimer = 0;      // 마지막 스폰 시도로부터 경과 시간 (ms)
   }
 
   // dt: 프레임 경과 시간 (ms)
   update(dt, snake, enemyManager = null) {
     this.foodTimer += dt;
-    if (!this.food) {
-      if (this.foodTimer >= FOOD_INTERVAL_MS) {
-        this.foodTimer = 0;
-        this.spawnFood(snake, enemyManager);
-      }
-    } else {
+    if (this.foods.length < FOOD_MAX_COUNT && this.foodTimer >= FOOD_INTERVAL_MS) {
       this.foodTimer = 0;
+      this.spawnFood(snake, enemyManager);
     }
   }
 
   ensureFood(snake, enemyManager = null) {
-    if (this.food) return true;
+    if (this.foods.length > 0) return true;
     this.spawnFood(snake, enemyManager);
-    return !!this.food;
+    return this.foods.length > 0;
   }
 
   spawnFood(snake, enemyManager = null) {
-    if (this.food) return;
+    if (this.foods.length >= FOOD_MAX_COUNT) return;
 
     const occupied = new Set();
     for (const segment of snake.segments) {
       occupied.add(`${segment.x},${segment.y}`);
+    }
+    for (const food of this.foods) {
+      occupied.add(`${food.x},${food.y}`);
     }
 
     if (enemyManager) {
@@ -50,28 +49,26 @@ export class ItemManager {
       const key = `${x},${y}`;
 
       if (!occupied.has(key)) {
-        this.food = { x, y, type: 'food' };
+        this.foods.push({ x, y, type: 'food' });
         return;
       }
     }
   }
 
-  // 뱀-머리가 먹이에 닿았는지 확인 — 닿으면 먹이 제거 후 반환
+  // 뱀-머리가 먹이 중 하나에 닿았는지 확인 — 닿으면 그 먹이를 제거 후 반환
   checkHeadCollision(snake) {
-    if (!this.food) return null;
     const h = snake.head;
-    if (h.x === this.food.x && h.y === this.food.y) {
-      const eaten = this.food;
-      this.food = null;
-      return eaten;
-    }
-    return null;
+    const index = this.foods.findIndex(food => food.x === h.x && food.y === h.y);
+    if (index === -1) return null;
+    const [eaten] = this.foods.splice(index, 1);
+    return eaten;
   }
 
   render(ctx) {
-    if (!this.food) return;
-    const def = ItemTypes.get(this.food.type);
-    ctx.fillStyle = def.color;
-    ctx.fillRect(this.food.x * CELL_SIZE, this.food.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+    for (const food of this.foods) {
+      const def = ItemTypes.get(food.type);
+      ctx.fillStyle = def.color;
+      ctx.fillRect(food.x * CELL_SIZE, food.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+    }
   }
 }
