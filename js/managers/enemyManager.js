@@ -1,4 +1,4 @@
-import { GRID_W, GRID_H, CELL_SIZE, ENEMY_SCALE, ENEMY_SPAWN_MIN_MS, ENEMY_SPAWN_MAX_MS, ENEMY_MAX_COUNT } from '../config/constants.js';
+import { GRID_W, GRID_H, CELL_SIZE, ENEMY_SCALE, ENEMY_SPAWN_MIN_MS, ENEMY_SPAWN_MAX_MS } from '../config/constants.js';
 import { EnemyTypes } from '../content/enemies/index.js';
 
 export class EnemyManager {
@@ -49,8 +49,6 @@ export class EnemyManager {
   }
 
   _trySpawn(snake) {
-    if (this.enemies.length >= ENEMY_MAX_COUNT) return;
-
     const candidates = [];
     for (let x = 0; x < GRID_W; x++) {
       for (let y = 0; y < GRID_H; y++) {
@@ -71,8 +69,15 @@ export class EnemyManager {
     this.enemies.push(this._createEnemy(typeDef, chosen.x, chosen.y));
   }
 
+  // 적은 화면에 ENEMY_SCALE x ENEMY_SCALE 크기의 정사각형으로 그려지므로(render() 참고),
+  // 충돌 판정도 정중앙 1칸이 아니라 그 정사각형 전체를 기준으로 해야 시각적으로 닿았을 때
+  // 항상 충돌로 잡힌다.
   checkHeadCollision(head) {
-    return this.enemies.some(enemy => enemy.typeDef.collidesWithHead && enemy.x === head.x && enemy.y === head.y);
+    const offset = Math.floor((ENEMY_SCALE - 1) / 2);
+    return this.enemies.some(enemy => {
+      if (!enemy.typeDef.collidesWithHead) return false;
+      return Math.abs(head.x - enemy.x) <= offset && Math.abs(head.y - enemy.y) <= offset;
+    });
   }
 
   render(ctx) {

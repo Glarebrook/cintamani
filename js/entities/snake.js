@@ -12,7 +12,7 @@ export class Snake {
     }
     this.segments = initialSegments;
     this.dir = { x: 1, y: 0 };
-    this.growPos = null; // 성장 대기 위치 (먹이를 먹은 좌표)
+    this.growQueue = []; // 성장 대기 위치들 (먹이를 먹은 좌표) — 여러 개를 동시에 기다릴 수 있음
   }
 
   get head() { return this.segments[0]; }
@@ -24,20 +24,20 @@ export class Snake {
     this.segments.pop();
   }
 
-  // 먹이를 먹은 위치 저장
+  // 먹이를 먹은 위치를 대기열에 추가 — 짧은 시간에 여러 번 먹어도 각각 독립적으로 처리된다
   scheduleGrowth(pos) {
-    this.growPos = { x: pos.x, y: pos.y };
+    this.growQueue.push({ x: pos.x, y: pos.y });
   }
 
-  // 이동 후 호출 — 뱀이 growPos를 완전히 벗어난 순간 꼬리에 한 칸 추가
+  // 이동 후 호출 — 대기 중인 각 위치를 뱀이 완전히 벗어난 순간 꼬리에 한 칸씩 추가
   checkGrowth() {
-    if (!this.growPos) return;
-    const { x, y } = this.growPos;
-    const stillOn = this.segments.some(s => s.x === x && s.y === y);
-    if (!stillOn) {
-      this.segments.push({ x, y });
-      this.growPos = null;
-    }
+    if (this.growQueue.length === 0) return;
+    this.growQueue = this.growQueue.filter(pos => {
+      const stillOn = this.segments.some(s => s.x === pos.x && s.y === pos.y);
+      if (stillOn) return true; // 아직 대기
+      this.segments.push({ x: pos.x, y: pos.y });
+      return false; // 처리 완료, 대기열에서 제거
+    });
   }
 
   occupies(x, y) {

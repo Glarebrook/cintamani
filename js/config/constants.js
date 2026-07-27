@@ -5,7 +5,6 @@ export const TICK_MS  = 100;     // 뱀 이동 간격 (ms)
 export const FOOD_INTERVAL_MS = 2000; // 먹이 등장 간격 (ms)
 export const ENEMY_SPAWN_MIN_MS = 3000; // 적 최소 생성 간격 (ms)
 export const ENEMY_SPAWN_MAX_MS = 7000; // 적 최대 생성 간격 (ms)
-export const ENEMY_MAX_COUNT = 3; // 화면 최대 적 수
 export const PROJECTILE_SPEED = 60; // 투사체 이동 속도 (칸/초)
 export const PROJECTILE_DAMAGE = 1; // 투사체 공격력
 export const PROJECTILE_SIZE_RATIO = 0.4; // 뱀 도트 대비 투사체 크기 비율
