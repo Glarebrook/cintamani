@@ -7,9 +7,10 @@ function normalizeKey(e) {
 
 function createActionBindings() {
   const bindings = new Map();
+  let anyHandler = null; // 특정 키가 아니라 "아무 키나" 반응해야 하는 화면(타이틀 등)용
 
   window.addEventListener('keydown', e => {
-    const handler = bindings.get(normalizeKey(e));
+    const handler = bindings.get(normalizeKey(e)) || anyHandler;
     if (!handler) return;
     e.preventDefault();
     handler(e);
@@ -18,6 +19,8 @@ function createActionBindings() {
   return {
     bind(key, handler) { bindings.set(key, handler); },
     unbind(key) { bindings.delete(key); },
+    bindAny(handler) { anyHandler = handler; },
+    unbindAny() { anyHandler = null; },
   };
 }
 

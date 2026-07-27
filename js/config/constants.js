@@ -15,4 +15,4 @@ export const ENEMY_CAPTURE_ZONE_SCALE = 5; // 파란색 적의 포획 범위(회
 
 // 화면 우측 하단에 표시되는 빌드 표시 — index.html의 캐시 무효화 ?v= 값과 항상 같이 올린다.
 // 코드를 바꿀 때마다 갱신해서, 새로고침한 화면이 실제로 최신 코드인지 눈으로 바로 확인할 수 있게 한다.
-export const BUILD_VERSION = '20260727-6';
+export const BUILD_VERSION = '20260727-7';
