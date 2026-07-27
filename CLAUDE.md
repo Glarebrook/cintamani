@@ -20,6 +20,14 @@ For any nontrivial request (new feature, behavior change, "what do you think abo
 
 This mirrors how `EnterPlanMode`/`ExitPlanMode` already work in this environment — for this project, treat that plan → approve → execute flow as the default for feature work, not just for large rewrites.
 
+## Branching and version workflow
+
+Adopted 2026-07-27. `master` is the stable/release branch — always in a shippable state. `dev` is a single, long-lived, reused branch where all new feature work happens (not one branch per feature) — the user explicitly chose this simpler model over per-feature branches, understanding the tradeoff: everything currently on `dev` moves to `master` together at merge time, so if an in-progress feature isn't ready (or isn't safely inert) when a different, finished feature needs to ship, finish or neutralize the in-progress one first rather than trying to cherry-pick just the finished piece off a single shared branch.
+
+Workflow: implement + headless-verify (see Commands below) + user browser-tests on `dev` → once confirmed, merge `dev` into `master` → add a new row to README.md's 변경 이력 (changelog) table → tag the merge commit (`git tag vX.Y.Z`) so that exact shipped state can always be revisited or rolled back to → bump the `?v=` cache-busting string in `index.html` (only needed at this merge point, not during `dev` iteration). Baseline: `v2.1.0` tag = the state right before this workflow was introduced.
+
+NAS deployment mechanism (git-pull vs. manual file copy) was not yet confirmed with the user as of this writing — don't assume merging to `master` alone puts changes live; ask before claiming a change "went live."
+
 ## Commands
 
 There is no build/lint/test tooling in this repo (no `package.json`). Development loop is:
@@ -79,6 +87,14 @@ Cintamani는 NAS 웹 서버(예: Synology Web Station, NGINX)에서 정적 파�
 4. **승인을 받은 후에 반영합니다.**
 
 이건 이 환경에서 이미 쓰이고 있는 `EnterPlanMode`/`ExitPlanMode` 흐름과 같은 맥락입니다 — 이 프로젝트에서는 대규모 재작성뿐 아니라 일반적인 기능 작업에도 이 "기획 → 승인 → 실행" 흐름을 기본값으로 삼으세요.
+
+### 브랜치·버전 워크플로우
+
+2026-07-27에 도입. `master`는 안정/운영 브랜치입니다 — 항상 바로 서빙해도 되는 상태로 유지합니다. `dev`는 새 기능 작업을 전부 진행하는, 하나만 계속 재사용하는 브랜치입니다(기능마다 브랜치를 새로 파지 않음) — 사용자가 기능별 브랜치보다 이 단순한 방식을 명시적으로 선택했고, 그 트레이드오프도 이해하고 있습니다: merge 시점에 `dev`에 있는 모든 것이 한꺼번에 `master`로 넘어가므로, 진행 중인 기능이 아직 준비 안 됐거나 안전하게 비활성 상태가 아닌데 다른(완성된) 기능을 내보내야 한다면, 하나의 공유 브랜치에서 완성된 부분만 골라내려 하지 말고 진행 중인 기능을 먼저 끝내거나 무력화하세요.
+
+작업 흐름: `dev`에서 구현 + 헤드리스 검증(아래 커맨드 참고) + 사용자 브라우저 테스트 → 확정되면 `dev`를 `master`에 merge → README.md의 변경 이력 표에 새 줄 추가 → merge 커밋에 태그(`git tag vX.Y.Z`)를 남겨서 그 시점 상태를 언제든 다시 보거나 되돌릴 수 있게 함 → `index.html`의 `?v=` 캐시 무효화 문자열을 올림(이건 이 merge 시점에만 필요하고, `dev`에서 작업하는 동안은 신경 안 써도 됨). 기준점: `v2.1.0` 태그 = 이 워크플로우를 도입하기 직전 상태.
+
+NAS 배포 방식(git pull 방식인지 수동 파일 복사인지)은 이 글을 쓰는 시점까지 사용자와 확인되지 않았습니다 — `master`에 merge한다고 곧바로 운영에 반영된다고 가정하지 말고, "이제 운영에 반영됐다"고 단정하기 전에 먼저 확인하세요.
 
 ### 커맨드
 
