@@ -1,14 +1,16 @@
-class Snake {
+import { GRID_W, GRID_H } from '../config/constants.js';
+
+export class Snake {
   constructor() {
     const cx = Math.floor(GRID_W / 2);
     const cy = Math.floor(GRID_H / 2);
     // 머리가 가장 오른쪽, 몸이 왼쪽으로 연장
     // segments[0] = 뱀-머리, segments[1] = 뱀-몸1, segments[2] = 뱀-몸2
-    this.segments = [
-      { x: cx,     y: cy },
-      { x: cx - 1, y: cy },
-      { x: cx - 2, y: cy },
-    ];
+    const initialSegments = [];
+    for (let i = 0; i < 40; i++) {
+      initialSegments.push({ x: cx - i, y: cy });
+    }
+    this.segments = initialSegments;
     this.dir = { x: 1, y: 0 };
     this.growPos = null; // 성장 대기 위치 (먹이를 먹은 좌표)
   }

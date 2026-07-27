@@ -6,12 +6,20 @@ const Renderer = (() => {
     food: '#44dd44',
   };
 
-  function render(ctx, snake, itemManager, enemyManager) {
+  function render(ctx, snake, itemManager, enemyManager, game) {
     const C = CELL_SIZE;
 
     // 배경
     ctx.fillStyle = COLOR.bg;
     ctx.fillRect(0, 0, GRID_W * C, GRID_H * C);
+
+    // 파란색 적 포획 범위 - 검은색 배경 대신 회색으로 표기
+    for (const enemy of enemyManager.enemies) {
+      if (enemy.type !== 2) continue;
+      const zone = enemyManager.getCaptureZoneBounds(enemy);
+      ctx.fillStyle = '#4d4d4d';
+      ctx.fillRect(zone.left * C, zone.top * C, (zone.right - zone.left + 1) * C, (zone.bottom - zone.top + 1) * C);
+    }
 
     // 먹이
     if (itemManager.food) {
@@ -29,6 +37,17 @@ const Renderer = (() => {
     // 뱀-머리
     ctx.fillStyle = COLOR.head;
     ctx.fillRect(snake.head.x * C, snake.head.y * C, C, C);
+
+    // 투사체
+    for (const projectile of game.projectiles) {
+      const size = Math.max(1, Math.floor(C * PROJECTILE_SIZE_RATIO));
+      const px = projectile.x * C;
+      const py = projectile.y * C;
+      ctx.fillStyle = projectile.color;
+      ctx.beginPath();
+      ctx.arc(px + size / 2, py + size / 2, size / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     // 적
     enemyManager.render(ctx);

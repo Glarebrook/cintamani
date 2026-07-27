@@ -1,86 +1,70 @@
-class Game {
-  constructor(canvas) {
-    this.canvas   = canvas;
-    this.ctx      = canvas.getContext('2d');
-    this._elSize  = document.getElementById('stat-size');
-    this._elSpeed = document.getElementById('stat-speed');
-    this._elTime  = document.getElementById('stat-time');
-    this._reset();
-    this._bindRestart();
+import { TICK_MS } from './config/constants.js';
+import { createEventBus } from './core/eventBus.js';
+import { createStateMachine } from './core/stateMachine.js';
+import { createGameLoop } from './core/loop.js';
+import { createHud } from './render/hud.js';
+import { Snake } from './entities/snake.js';
+import { EnemyManager } from './managers/enemyManager.js';
+import { ItemManager } from './managers/itemManager.js';
+import { createProjectileManager } from './managers/projectileManager.js';
+import { createPlayingState } from './states/playingState.js';
+import { createGameOverState } from './states/gameOverState.js';
+
+// World는 매 재시작마다 재생성되지 않고 reset()으로 내부 필드만 갈아끼운다 —
+// states/*.js가 세계 생성 시점의 스냅샷이 아니라 world.snake 등을 항상 최신값으로 참조하기 때문.
+function createWorld() {
+  const world = {
+    eventBus: createEventBus(),
+    snake: null,
+    enemyManager: null,
+    itemManager: null,
+    projectileManager: null,
+    startTime: 0,
+  };
+
+  world.reset = () => {
+    world.snake = new Snake();
+    world.enemyManager = new EnemyManager();
+    world.itemManager = new ItemManager();
+    world.projectileManager = createProjectileManager();
+    world.startTime = performance.now();
+    world.itemManager.ensureFood(world.snake, world.enemyManager);
+  };
+
+  world.reset();
+  return world;
+}
+
+export function createGame(canvas) {
+  const ctx = canvas.getContext('2d');
+  const hud = createHud();
+  const world = createWorld();
+
+  function restart() {
+    world.reset();
+    stateMachine.transition('playing');
   }
 
-  _reset() {
-    this.snake        = new Snake();
-    this.itemManager  = new ItemManager();
-    this.enemyManager = new EnemyManager();
-    this.gameOver     = false;
-    this.lastTick     = performance.now();
-    this.lastFrame    = null;
-    this.startTime    = performance.now();
-    this.survivalMs   = 0;
-  }
+  const playingState = createPlayingState({ world, hud, ctx });
+  const gameOverState = createGameOverState({ world, ctx, hud, onRestart: restart });
 
-  _bindRestart() {
-    window.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && this.gameOver) {
-        this._reset();
-      }
-    });
-  }
+  const stateMachine = createStateMachine(
+    { playing: playingState, gameOver: gameOverState },
+    'playing'
+  );
 
-  start() {
-    requestAnimationFrame(t => this._loop(t));
-  }
+  world.eventBus.on('playerDied', ({ survivalMs }) => {
+    stateMachine.transition('gameOver', { survivalMs });
+  });
 
-  _loop(timestamp) {
-    const dt = this.lastFrame ? timestamp - this.lastFrame : 0;
-    this.lastFrame = timestamp;
+  const loop = createGameLoop({
+    tickMs: TICK_MS,
+    onFrame: dt => stateMachine.current.onFrame(dt),
+    onTick: () => stateMachine.current.onTick(),
+    onRender: () => stateMachine.current.render(),
+  });
 
-    if (!this.gameOver) {
-      this.itemManager.update(dt, this.snake);
-
-      if (timestamp - this.lastTick >= TICK_MS) {
-        this.lastTick += TICK_MS;
-        this._tick();
-      }
-    }
-
-    if (this.gameOver) {
-      Renderer.render(this.ctx, this.snake, this.itemManager, this.enemyManager);
-      Renderer.renderGameOver(this.ctx);
-    } else {
-      Renderer.render(this.ctx, this.snake, this.itemManager, this.enemyManager);
-    }
-
-    this._updateStats(timestamp);
-    requestAnimationFrame(t => this._loop(t));
-  }
-
-  _updateStats(timestamp) {
-    const elapsed = this.gameOver
-      ? this.survivalMs
-      : (timestamp - this.startTime);
-    this._elSize.textContent  = this.snake.segments.length;
-    this._elSpeed.textContent = TICK_MS;
-    this._elTime.textContent  = (elapsed / 1000).toFixed(1);
-  }
-
-  _tick() {
-    const dir = Input.consume();
-    this.snake.step(dir);
-
-    if (this.snake.isWallCollision() || this.snake.isSelfCollision()) {
-      this.survivalMs = performance.now() - this.startTime;
-      this.gameOver = true;
-      return;
-    }
-
-    const eaten = this.itemManager.checkHeadCollision(this.snake);
-    if (eaten) {
-      this.snake.scheduleGrowth(eaten);
-    }
-
-    this.snake.checkGrowth();
-    this.enemyManager.update(TICK_MS);
-  }
+  return {
+    start() { loop.start(); },
+  };
 }

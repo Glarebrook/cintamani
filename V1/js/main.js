@@ -1,6 +1,3 @@
-import { GRID_W, GRID_H, CELL_SIZE } from './config/constants.js';
-import { createGame } from './game.js';
-
 window.addEventListener('load', () => {
   const canvas = document.getElementById('game-canvas');
   canvas.width  = GRID_W * CELL_SIZE;   // 내부 해상도
@@ -9,7 +6,7 @@ window.addEventListener('load', () => {
   canvas.style.width  = canvas.width  + 'px';
   canvas.style.height = canvas.height + 'px';
 
-  const game = createGame(canvas);
+  const game = new Game(canvas);
   window.__game = game;
   game.start();
 });
