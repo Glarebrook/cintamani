@@ -110,13 +110,29 @@ export class EnemyManager {
     return removed;
   }
 
+  // 타입을 먼저 고르고 나서 그 타입에 맞는 후보 칸을 찾는다(예전엔 반대 순서였다) —
+  // captureZone을 가진 타입은 가장자리 여백이 필요해서, 어떤 타입이 나올지 미리 알아야
+  // 후보 칸 범위를 좁힐 수 있다.
   _trySpawn(world) {
     if (this.enemies.length >= ENEMY_MAX_COUNT) return;
 
+    const eligibleTypes = EnemyTypes.all().filter(def => !def.spawnEligible || def.spawnEligible(world));
+    if (eligibleTypes.length === 0) return;
+    const typeDef = eligibleTypes[Math.floor(Math.random() * eligibleTypes.length)];
+
+    // captureZone(감싸서 처치하는 타입, 예: 2번/4번적)은 회색 포획 범위 전체가 격자 안에
+    // 온전히 들어와야 한다 — 가장자리에 바짝 붙어서 생성되면 그 범위가 격자 밖으로 잘려나가고,
+    // 특히 딱 가장자리 칸(x=0 등)에 생성되면 flood fill이 그 칸 자체를 "바깥"으로 취급해서
+    // 원천적으로 포획이 불가능해진다. getCaptureZoneBounds(content/mechanics/encirclement.js)와
+    // 정확히 같은 공식으로 여백을 계산한다.
+    const margin = typeDef.captureZone
+      ? Math.floor((ENEMY_SCALE * typeDef.captureZone.scale - 1) / 2)
+      : 0;
+
     const snake = world.snake;
     const candidates = [];
-    for (let x = 0; x < GRID_W; x++) {
-      for (let y = 0; y < GRID_H; y++) {
+    for (let x = margin; x < GRID_W - margin; x++) {
+      for (let y = margin; y < GRID_H - margin; y++) {
         const occupiedBySnake = snake.occupies(x, y);
         const occupiedByEnemy = this.enemies.some(enemy => enemy.x === x && enemy.y === y);
         if (!occupiedBySnake && !occupiedByEnemy) {
@@ -126,11 +142,7 @@ export class EnemyManager {
     }
     if (candidates.length === 0) return;
 
-    const eligibleTypes = EnemyTypes.all().filter(def => !def.spawnEligible || def.spawnEligible(world));
-    if (eligibleTypes.length === 0) return;
-
     const chosen = candidates[Math.floor(Math.random() * candidates.length)];
-    const typeDef = eligibleTypes[Math.floor(Math.random() * eligibleTypes.length)];
     this.enemies.push(this._createEnemy(typeDef, chosen.x, chosen.y));
   }
 

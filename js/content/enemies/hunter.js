@@ -1,13 +1,14 @@
 import {
   HUNTER_HP, HUNTER_PROJECTILE_SPEED, HUNTER_BURST_COUNT, HUNTER_BURST_SHOT_INTERVAL_MS, HUNTER_UNLOCK_TICK_MS,
-  FOOD_BASE_GROWTH, FOOD_SPEED_DELTA_MS, MAX_TICK_MS,
+  HUNTER_MOVE_MS, FOOD_BASE_GROWTH, FOOD_SPEED_DELTA_MS, MAX_TICK_MS,
 } from '../../config/constants.js';
 import { createProjectile } from '../../entities/projectile.js';
 
 // type 5 — 추적 사격형 적: 뱀 이동 간격이 HUNTER_UNLOCK_TICK_MS보다 짧아져야(=뱀이 그만큼
-// 빨라져야) 스폰 가능. 감지 범위 없이 항상 뱀 머리 쪽으로, 뱀과 정확히 같은 속도로 접근한다
-// (moveIntervalMs가 world.stats.tickMs를 그대로 반환 — 속도 먹이로 뱀이 빨라지거나 느려지면
-// 이 적도 실시간으로 같이 바뀐다).
+// 빨라져야) 스폰 가능. 감지 범위 없이 항상 뱀 머리 쪽으로 접근하는데, 이동 속도는
+// HUNTER_MOVE_MS로 고정이다 — 뱀의 그 순간 실시간 속도(world.stats.tickMs)를 따라가지
+// 않는다(chaser.js의 CHASER_BASE_MOVE_MS와 같은 이유: 뱀이 속도 먹이로 빨라지거나
+// 느려져도 이 적의 속도는 영향받지 않는 게 의도된 동작).
 //
 // 추가로, 뱀 머리가 이 적과 같은 행/열에 "새로 들어오는" 순간(엣지 트리거)마다 3발 버스트를
 // 1초에 걸쳐(0/500/1000ms) 쏜다. 같은 라인에 계속 머물러 있어도 버스트가 끝나기 전까지는
@@ -26,8 +27,8 @@ export const hunterEnemy = {
   // 뱀 이동 간격이 이 값보다 작아져야(=속도가 이보다 빨라져야) 스폰 가능 — tickMs는 작을수록 빠르다.
   spawnEligible: ({ stats }) => stats.tickMs < HUNTER_UNLOCK_TICK_MS,
 
-  moveIntervalMs(enemy, world) {
-    return world.stats.tickMs;
+  moveIntervalMs() {
+    return HUNTER_MOVE_MS;
   },
   move(enemy, world) {
     const head = world.snake.head;
