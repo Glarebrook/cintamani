@@ -11,7 +11,7 @@ import {
 import { ItemTypes } from '../content/items/index.js';
 import { createProjectile } from '../entities/projectile.js';
 import {
-  PROJECTILE_SPEED, PARTICLE_BURST_COUNT, PARTICLE_SPEED, PARTICLE_LIFE_MS, ITEM_FLASH_DURATION_MS,
+  PROJECTILE_SPEED, PARTICLE_BURST_COUNT, PARTICLE_SPEED, PARTICLE_LIFE_MS,
 } from '../config/constants.js';
 
 // 이동 → 벽 → 포획 메커니즘 → 자기충돌(포획 시 눈감아줌) → 적충돌 → 먹이 → 성장 → 적 스폰 타이머,
@@ -108,7 +108,7 @@ export function createPlayingState({ world, hud, ctx }) {
       if (eaten) {
         const def = ItemTypes.get(eaten.type);
         def.onPickup(world, eaten);
-        world.snake.startFlash(def.color, ITEM_FLASH_DURATION_MS);
+        world.snake.startFlash(def.color);
       }
 
       world.snake.checkGrowth();

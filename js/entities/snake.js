@@ -1,4 +1,6 @@
-import { GRID_W, GRID_H, SNAKE_INITIAL_LENGTH } from '../config/constants.js';
+import {
+  GRID_W, GRID_H, SNAKE_INITIAL_LENGTH, ITEM_FLASH_DURATION_MS, ITEM_FLASH_STAGGER_MS,
+} from '../config/constants.js';
 
 export class Snake {
   constructor(initialLength = SNAKE_INITIAL_LENGTH) {
@@ -13,8 +15,11 @@ export class Snake {
     this.segments = initialSegments;
     this.dir = { x: 1, y: 0 };
     this.growQueue = []; // 성장 대기 위치들 (먹이를 먹은 좌표) — 여러 개를 동시에 기다릴 수 있음
-    this.flashColor = null; // 아이템 섭취 시 잠깐 머리를 이 색으로 그림 (null이면 평소 색)
-    this.flashRemainingMs = 0;
+    // 아이템 섭취 시 머리→꼬리로 순차적으로 흘러가며 반짝이는 웨이브 상태.
+    // flashElapsedMs: 웨이브 시작 후 지난 시간 - 각 칸은 이 값을 기준으로 자기 차례가 오면
+    // 반짝인다(isFlashingAt 참고). null이면 웨이브가 없는(평소) 상태.
+    this.flashColor = null;
+    this.flashElapsedMs = 0;
   }
 
   get head() { return this.segments[0]; }
@@ -49,18 +54,30 @@ export class Snake {
     if (count > 0) this.segments.splice(-count, count);
   }
 
-  // 아이템 섭취 시 호출 - durationMs 동안 머리를 color로 그리다가 저절로 꺼진다.
-  startFlash(color, durationMs) {
+  // 아이템 섭취 시 호출 - 머리부터 시작해서 꼬리까지 순서대로(칸당 ITEM_FLASH_STAGGER_MS씩
+  // 늦게) color로 짧게(칸당 ITEM_FLASH_DURATION_MS) 반짝이며 흘러가는 웨이브를 새로 시작한다.
+  startFlash(color) {
     this.flashColor = color;
-    this.flashRemainingMs = durationMs;
+    this.flashElapsedMs = 0;
   }
 
-  // onFrame(dt)에서 매 프레임 호출 - onTick이 아니라 실제 프레임 dt로 줄여야 반짝임 길이가
-  // 뱀 이동 간격(TICK_MS)에 좌우되지 않고 항상 일정하게 느껴진다.
+  // onFrame(dt)에서 매 프레임 호출 - onTick이 아니라 실제 프레임 dt로 흘려야 웨이브가 흐르는
+  // 속도가 뱀 이동 간격(TICK_MS)에 좌우되지 않고 항상 일정하게 느껴진다. 웨이브가 지금
+  // 몸 길이 기준 꼬리까지 다 지나갔으면 꺼진다 - 웨이브 도중 성장으로 몸이 길어지면
+  // 그만큼 자연스럽게 더 오래(꼬리까지) 흘러간다.
   updateFlash(dt) {
     if (!this.flashColor) return;
-    this.flashRemainingMs -= dt;
-    if (this.flashRemainingMs <= 0) this.flashColor = null;
+    this.flashElapsedMs += dt;
+    const totalMs = (this.segments.length - 1) * ITEM_FLASH_STAGGER_MS + ITEM_FLASH_DURATION_MS;
+    if (this.flashElapsedMs > totalMs) this.flashColor = null;
+  }
+
+  // index번째 칸(0=머리)이 지금 이 프레임에 반짝이는 중인지 - render/layers.js의 snakeLayer가
+  // 매 칸마다 확인해서 fillStyle을 고른다.
+  isFlashingAt(index) {
+    if (!this.flashColor) return false;
+    const start = index * ITEM_FLASH_STAGGER_MS;
+    return this.flashElapsedMs >= start && this.flashElapsedMs < start + ITEM_FLASH_DURATION_MS;
   }
 
   occupies(x, y) {

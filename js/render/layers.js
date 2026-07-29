@@ -41,20 +41,22 @@ function itemLayer(ctx, world) {
   world.itemManager.render(ctx);
 }
 
-// 꼬리부터 그려서 머리가 위에 오도록
+// 꼬리부터 그려서 머리가 위에 오도록. 아이템 섭취 직후에는 머리에서 꼬리 쪽으로 순서대로
+// 흘러가는 반짝임 웨이브가 있을 수 있어(Snake.startFlash/updateFlash/isFlashingAt 참고),
+// 칸마다 지금 그 웨이브의 차례인지 확인해서 반짝이는 중이면 평소 색 대신 그 색을 쓴다.
 function snakeLayer(ctx, world) {
   const C = CELL_SIZE;
-  ctx.fillStyle = COLOR.body;
-  const segments = world.snake.segments;
+  const snake = world.snake;
+  const segments = snake.segments;
   for (let i = segments.length - 1; i >= 1; i--) {
     const s = segments[i];
+    ctx.fillStyle = snake.isFlashingAt(i) ? snake.flashColor : COLOR.body;
     ctx.fillRect(s.x * C, s.y * C, C, C);
   }
 
-  // 아이템 섭취 직후 짧게 그 아이템 색으로 머리를 그린다 (Snake.startFlash/updateFlash 참고) -
-  // 반짝이는 중이 아니면(flashColor가 null이면) 평소 머리색 그대로.
-  ctx.fillStyle = world.snake.flashColor || COLOR.head;
-  ctx.fillRect(world.snake.head.x * C, world.snake.head.y * C, C, C);
+  const head = snake.head;
+  ctx.fillStyle = snake.isFlashingAt(0) ? snake.flashColor : COLOR.head;
+  ctx.fillRect(head.x * C, head.y * C, C, C);
 }
 
 function projectileLayer(ctx, world) {
