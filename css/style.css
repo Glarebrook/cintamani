@@ -45,3 +45,117 @@ body {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
+
+/* 캔버스와 리더보드 오버레이를 겹쳐 놓기 위한 포지셔닝 기준점 */
+#canvas-stage {
+  position: relative;
+}
+
+#leaderboard-overlay {
+  position: absolute;
+  inset: 2px; /* #game-canvas의 2px border 안쪽에 딱 맞춤 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(10, 10, 10, 0.94);
+  color: #fff;
+  font-family: monospace;
+  padding: 16px;
+  text-align: center;
+}
+
+#leaderboard-overlay.hidden {
+  display: none;
+}
+
+#leaderboard-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+#leaderboard-form.hidden {
+  display: none;
+}
+
+#leaderboard-name-input {
+  background: #1a1a1a;
+  color: #fff;
+  border: 1px solid #555;
+  padding: 6px 10px;
+  font-family: monospace;
+  font-size: 14px;
+  text-align: center;
+  width: 280px; /* 이름 최대 200자를 감안해 기본 입력창보다 넓힘 - 넘치는 부분은 입력창 자체 스크롤로 처리됨 */
+}
+
+#leaderboard-actions {
+  display: flex;
+  gap: 8px;
+}
+
+#leaderboard-actions button {
+  background: #2a2a2a;
+  color: #fff;
+  border: 1px solid #555;
+  padding: 6px 14px;
+  font-family: monospace;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+#leaderboard-actions button:hover {
+  background: #3a3a3a;
+}
+
+#leaderboard-list {
+  list-style: none;
+  width: 100%;
+  max-width: 420px;
+  max-height: 40vh;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+/* 이름(최대 200자) + 생존시간을 한 줄로, 등록 일시는 그 아래 작은 글씨로 - 긴 이름은
+   가로로 넘치지 않고 줄바꿈되게 한다 */
+#leaderboard-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 3px 4px;
+  color: #ccc;
+  text-align: left;
+}
+
+.leaderboard-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.leaderboard-name {
+  overflow-wrap: anywhere;
+}
+
+.leaderboard-date {
+  font-size: 11px;
+  color: #777;
+}
+
+#leaderboard-list li.mine {
+  color: #ffd54f;
+  font-weight: bold;
+}
+
+#leaderboard-list li.mine .leaderboard-date {
+  color: #b39544;
+}
+
+#leaderboard-footer {
+  font-size: 12px;
+  color: #888;
+}

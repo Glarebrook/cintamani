@@ -42,11 +42,17 @@ export const TURRET_CAPTURE_DOUBLE_CHANCE = 0.3; // 노랑+주황을 나란히 �
 
 export const HUNTER_HP = 20; // 5번적(추적 사격형) 기본 체력
 export const HUNTER_UNLOCK_TICK_MS = 80; // 뱀 이동 간격이 이 값보다 작아야(=이보다 빨라야) 5번적이 스폰 가능
+export const HUNTER_MOVE_MS = 120; // 5번적 이동 간격(ms) - 뱀의 실시간 속도와는 별개로 고정값(뱀 기본 속도와 같은 값)
 export const HUNTER_PROJECTILE_SPEED = PROJECTILE_SPEED * 2; // 5번적 투사체 속도 - 플레이어 투사체의 2배
 export const HUNTER_BURST_COUNT = 3; // 정렬 진입 시 한 번에 쏘는 발수
 export const HUNTER_BURST_WINDOW_MS = 1000; // 버스트 전체(첫 발~마지막 발)가 걸치는 시간(ms)
 export const HUNTER_BURST_SHOT_INTERVAL_MS = HUNTER_BURST_WINDOW_MS / (HUNTER_BURST_COUNT - 1); // 발사 간 간격 - 0/500/1000ms에 3발
 
+// 리더보드 API - api/leaderboard.php와 항상 짝을 맞춘다. 상대경로라서 NAS 배포 경로가 어디든 동작.
+export const LEADERBOARD_API_URL = 'api/leaderboard.php';
+export const LEADERBOARD_MAX_ENTRIES = 20; // 서버가 유지하는 상위 기록 수와 동일하게 맞춘다
+export const LEADERBOARD_NAME_MAX_LENGTH = 200; // 서버 쪽 mb_substr 제한과 동일하게 맞춘다
+
 // 화면 우측 하단에 표시되는 빌드 표시 — index.html의 캐시 무효화 ?v= 값과 항상 같이 올린다.
 // 코드를 바꿀 때마다 갱신해서, 새로고침한 화면이 실제로 최신 코드인지 눈으로 바로 확인할 수 있게 한다.
-export const BUILD_VERSION = '20260729-14';
+export const BUILD_VERSION = '20260729-18';

@@ -15,12 +15,28 @@ export function renderTitleScreen(ctx) {
   ctx.font = `bold ${Math.floor(ch * 0.12)}px monospace`;
   ctx.fillText('CINTAMANI', cw / 2, ch / 2);
 
-  // 두 선택지를 하나의 덩어리로 보고 위아래로 통통 튀는 느낌을 준다 — 개별 줄마다
-  // 따로 튀면 두 줄 사이 간격이 흔들려 보이므로, 같은 오프셋을 함께 적용한다.
+  // 세 선택지를 하나의 덩어리로 보고 위아래로 통통 튀는 느낌을 준다 — 개별 줄마다
+  // 따로 튀면 줄 사이 간격이 흔들려 보이므로, 같은 오프셋을 함께 적용한다.
   const bounce = Math.sin(performance.now() / 200) * (ch * 0.02);
   ctx.font = `${Math.floor(ch * 0.035)}px monospace`;
-  ctx.fillText('ENTER - GAME START', cw / 2, ch * 0.76 + bounce);
-  ctx.fillText('T - TEST MODE', cw / 2, ch * 0.84 + bounce);
+  ctx.fillText('ENTER - GAME START', cw / 2, ch * 0.72 + bounce);
+  ctx.fillText('T - TEST MODE', cw / 2, ch * 0.79 + bounce);
+  ctx.fillText('L - LEADERBOARD', cw / 2, ch * 0.86 + bounce);
+}
+
+// 타이틀에서 L을 눌러 진입하는 순위 열람 전용 화면의 배경 — 실제 목록/이름 등은
+// leaderboardPanel.js의 DOM 오버레이가 그 위에 겹쳐 그린다. 캔버스 쪽은 어두운
+// 배경 + 짧은 안내 문구만 담당한다.
+export function renderLeaderboardViewBackground(ctx) {
+  const cw = GRID_W * CELL_SIZE;
+  const ch = GRID_H * CELL_SIZE;
+  ctx.fillStyle = '#111111';
+  ctx.fillRect(0, 0, cw, ch);
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.floor(ch * 0.06)}px monospace`;
+  ctx.fillText('LEADERBOARD', cw / 2, ch * 0.1);
 }
 
 // 향후 Paused/Menu 오버레이도 이 파일에 나란히 추가한다.

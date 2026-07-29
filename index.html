@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cintamani</title>
-  <link rel="stylesheet" href="css/style.css?v=20260729-14" />
+  <link rel="stylesheet" href="css/style.css?v=20260729-18" />
 </head>
 <body>
   <div id="game-wrapper">
@@ -14,9 +14,23 @@
       <span>뱀속도 <span class="val" id="stat-snake-speed">16</span> 단계</span>
       <span>생존 <span class="val" id="stat-time">0.0</span> s</span>
     </div>
-    <canvas id="game-canvas"></canvas>
+    <div id="canvas-stage">
+      <canvas id="game-canvas"></canvas>
+      <div id="leaderboard-overlay" class="hidden">
+        <form id="leaderboard-form">
+          <div>이름을 입력하세요</div>
+          <input id="leaderboard-name-input" type="text" maxlength="200" autocomplete="off" placeholder="이름 (최대 200자)" />
+          <div id="leaderboard-actions">
+            <button type="submit">등록</button>
+            <button type="button" id="leaderboard-skip-btn">건너뛰기</button>
+          </div>
+        </form>
+        <ol id="leaderboard-list"></ol>
+        <div id="leaderboard-footer"></div>
+      </div>
+    </div>
   </div>
 
-  <script type="module" src="js/main.js?v=20260729-14"></script>
+  <script type="module" src="js/main.js?v=20260729-18"></script>
 </body>
 </html>
