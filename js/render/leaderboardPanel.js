@@ -28,6 +28,7 @@ function formatTimestamp(ts) {
 export function createLeaderboardPanel() {
   const overlay = document.getElementById('leaderboard-overlay');
   const form = document.getElementById('leaderboard-form');
+  const myScore = document.getElementById('leaderboard-my-score');
   const nameInput = document.getElementById('leaderboard-name-input');
   const skipBtn = document.getElementById('leaderboard-skip-btn');
   const list = document.getElementById('leaderboard-list');
@@ -45,27 +46,25 @@ export function createLeaderboardPanel() {
   });
   skipBtn.addEventListener('click', () => handlers.onSkip?.());
 
+  // 기록 하나당 한 줄 - 이름/기록은 눈에 잘 띄게 크게, 타임스탬프는 부가정보로 작게.
   function renderList(entries, mineIndex) {
     list.textContent = '';
     entries.forEach((entry, i) => {
       const li = document.createElement('li');
       if (i === mineIndex) li.className = 'mine';
 
-      const row = document.createElement('div');
-      row.className = 'leaderboard-row';
       const rank = document.createElement('span');
       rank.className = 'leaderboard-name';
       rank.textContent = `${i + 1}. ${entry.name}`;
       const time = document.createElement('span');
+      time.className = 'leaderboard-record';
       time.textContent = formatSeconds(entry.survivalMs);
-      row.appendChild(rank);
-      row.appendChild(time);
-
-      const date = document.createElement('div');
+      const date = document.createElement('span');
       date.className = 'leaderboard-date';
       date.textContent = formatTimestamp(entry.ts);
 
-      li.appendChild(row);
+      li.appendChild(rank);
+      li.appendChild(time);
       li.appendChild(date);
       list.appendChild(li);
     });
@@ -75,9 +74,14 @@ export function createLeaderboardPanel() {
     setHandlers(next) { handlers = next; },
     show() { overlay.classList.remove('hidden'); },
     hide() { overlay.classList.add('hidden'); },
-    showEntryPhase(entries) {
+    // survivalMs: 이번 판 기록 - 등록할지 말지 판단하려면 기존 순위표와 비교해볼 수 있게
+    // 눈에 띄게 보여줘야 한다는 피드백으로 추가. leaderboardViewState는 특정 판의 기록이
+    // 없으므로 이 인자를 안 넘기고, 그 경우 자리를 비워둔다(showResultPhase는 별개로
+    // 폼 자체를 숨기므로 이 텍스트도 같이 안 보이게 됨).
+    showEntryPhase(entries, survivalMs) {
       form.classList.remove('hidden');
       footer.textContent = '';
+      myScore.textContent = survivalMs != null ? `이번 기록: ${formatSeconds(survivalMs)}` : '';
       nameInput.value = '';
       renderList(entries, -1);
       nameInput.focus();

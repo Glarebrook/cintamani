@@ -21,22 +21,27 @@ export function createGameOverState({ world, ctx, hud, panel, onRestart }) {
     Actions.bind('Enter', onRestart);
   }
 
+  function handleSkip() {
+    if (phase !== 'entry') return;
+    finish(lastEntries, -1);
+  }
+
+  // 이름 없이(빈 칸인 채로) ENTER/등록을 누르면 '익명'으로 대신 제출하는 게 아니라,
+  // 건너뛰기와 완전히 동일하게 아예 제출 자체를 하지 않는다.
   async function handleSubmit(rawName) {
+    if (!rawName) {
+      handleSkip();
+      return;
+    }
     const myGeneration = generation;
-    const name = rawName || '익명';
-    const result = await submitScore(name, survivalMs);
+    const result = await submitScore(rawName, survivalMs);
     if (myGeneration !== generation || phase !== 'entry') return;
     if (result.ok) {
-      const mineIndex = result.entries.findIndex(e => e.name === name && e.survivalMs === survivalMs);
+      const mineIndex = result.entries.findIndex(e => e.name === rawName && e.survivalMs === survivalMs);
       finish(result.entries, mineIndex);
     } else {
       finish(lastEntries, -1);
     }
-  }
-
-  function handleSkip() {
-    if (phase !== 'entry') return;
-    finish(lastEntries, -1);
   }
 
   panel.setHandlers({ onSubmit: handleSubmit, onSkip: handleSkip });
@@ -61,7 +66,7 @@ export function createGameOverState({ world, ctx, hud, panel, onRestart }) {
       const result = await fetchLeaderboard();
       if (myGeneration !== generation || phase !== 'entry') return;
       lastEntries = result.ok ? result.entries : [];
-      panel.showEntryPhase(lastEntries);
+      panel.showEntryPhase(lastEntries, survivalMs);
     },
     exit() {
       generation++;

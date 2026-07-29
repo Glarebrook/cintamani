@@ -51,23 +51,41 @@ body {
   position: relative;
 }
 
+/* 왼쪽: 이번 기록 + 이름 입력, 오른쪽: 기존 순위표 - 나란히 배치해서 한눈에 비교되게 한다 */
 #leaderboard-overlay {
   position: absolute;
   inset: 2px; /* #game-canvas의 2px border 안쪽에 딱 맞춤 */
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 32px;
   background: rgba(10, 10, 10, 0.94);
   color: #fff;
   font-family: monospace;
   padding: 16px;
-  text-align: center;
 }
 
 #leaderboard-overlay.hidden {
   display: none;
+}
+
+#leaderboard-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+#leaderboard-right {
+  flex: 1;
+  min-width: 0;
+  max-width: 460px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
 }
 
 #leaderboard-form {
@@ -81,6 +99,13 @@ body {
   display: none;
 }
 
+/* 등록할지 판단하려면 기존 순위표와 비교할 기준이 눈에 바로 보여야 함 - 크고 강조된 색으로 표시 */
+#leaderboard-my-score {
+  font-size: 22px;
+  font-weight: bold;
+  color: #ffd54f;
+}
+
 #leaderboard-name-input {
   background: #1a1a1a;
   color: #fff;
@@ -89,7 +114,7 @@ body {
   font-family: monospace;
   font-size: 14px;
   text-align: center;
-  width: 280px; /* 이름 최대 200자를 감안해 기본 입력창보다 넓힘 - 넘치는 부분은 입력창 자체 스크롤로 처리됨 */
+  width: 220px; /* 이름 최대 200자를 감안해 기본 입력창보다 넓힘 - 넘치는 부분은 입력창 자체 스크롤로 처리됨 */
 }
 
 #leaderboard-actions {
@@ -114,36 +139,39 @@ body {
 #leaderboard-list {
   list-style: none;
   width: 100%;
-  max-width: 420px;
-  max-height: 40vh;
+  max-height: 60vh;
   overflow-y: auto;
-  font-size: 13px;
 }
 
-/* 이름(최대 200자) + 생존시간을 한 줄로, 등록 일시는 그 아래 작은 글씨로 - 긴 이름은
-   가로로 넘치지 않고 줄바꿈되게 한다 */
+/* 기록 하나당 한 줄 - 이름/기록은 크게 눈에 띄게, 타임스탬프는 부가정보로 작게 */
 #leaderboard-list li {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
-  padding: 3px 4px;
+  align-items: baseline;
+  gap: 10px;
+  padding: 4px 6px;
   color: #ccc;
   text-align: left;
-}
-
-.leaderboard-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  white-space: nowrap;
 }
 
 .leaderboard-name {
-  overflow-wrap: anywhere;
+  font-size: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.leaderboard-record {
+  font-size: 16px;
+  font-weight: bold;
+  flex-shrink: 0;
 }
 
 .leaderboard-date {
-  font-size: 11px;
+  font-size: 10px;
   color: #777;
+  flex-shrink: 0;
 }
 
 #leaderboard-list li.mine {
