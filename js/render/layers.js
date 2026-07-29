@@ -1,4 +1,6 @@
-import { GRID_W, GRID_H, CELL_SIZE, ENEMY_SCALE, PROJECTILE_SIZE_RATIO, BUILD_VERSION } from '../config/constants.js';
+import {
+  GRID_W, GRID_H, CELL_SIZE, ENEMY_SCALE, PROJECTILE_SIZE_RATIO, BUILD_VERSION, ITEM_FLASH_ALPHA,
+} from '../config/constants.js';
 import { toPixel } from '../core/gridMath.js';
 import { getCaptureZoneBounds } from '../content/mechanics/encirclement.js';
 
@@ -41,22 +43,34 @@ function itemLayer(ctx, world) {
   world.itemManager.render(ctx);
 }
 
-// 꼬리부터 그려서 머리가 위에 오도록. 아이템 섭취 직후에는 머리에서 꼬리 쪽으로 순서대로
-// 흘러가는 반짝임 웨이브가 있을 수 있어(Snake.startFlash/updateFlash/isFlashingAt 참고),
-// 칸마다 지금 그 웨이브의 차례인지 확인해서 반짝이는 중이면 평소 색 대신 그 색을 쓴다.
+// 꼬리부터 그려서 머리가 위에 오도록. 평소 색을 먼저 다 그린 뒤, 아이템 섭취 직후 머리에서
+// 꼬리 쪽으로 흘러가는 반짝임 웨이브 중인 칸에만 그 아이템 색을 낮은 불투명도(ITEM_FLASH_ALPHA)로
+// 덧씌운다 - 색을 통째로 바꿔치기하지 않고 은은하게 틴트만 얹는 방식(Snake.isFlashingAt 참고).
 function snakeLayer(ctx, world) {
   const C = CELL_SIZE;
   const snake = world.snake;
   const segments = snake.segments;
+
+  ctx.fillStyle = COLOR.body;
   for (let i = segments.length - 1; i >= 1; i--) {
     const s = segments[i];
-    ctx.fillStyle = snake.isFlashingAt(i) ? snake.flashColor : COLOR.body;
     ctx.fillRect(s.x * C, s.y * C, C, C);
   }
 
   const head = snake.head;
-  ctx.fillStyle = snake.isFlashingAt(0) ? snake.flashColor : COLOR.head;
+  ctx.fillStyle = COLOR.head;
   ctx.fillRect(head.x * C, head.y * C, C, C);
+
+  if (snake.flashColor) {
+    ctx.globalAlpha = ITEM_FLASH_ALPHA;
+    ctx.fillStyle = snake.flashColor;
+    for (let i = 0; i < segments.length; i++) {
+      if (!snake.isFlashingAt(i)) continue;
+      const s = segments[i];
+      ctx.fillRect(s.x * C, s.y * C, C, C);
+    }
+    ctx.globalAlpha = 1;
+  }
 }
 
 function projectileLayer(ctx, world) {
