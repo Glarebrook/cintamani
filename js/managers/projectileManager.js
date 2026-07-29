@@ -1,4 +1,4 @@
-import { GRID_W, GRID_H, ENEMY_SCALE, TURRET_PROJECTILE_SHRINK } from '../config/constants.js';
+import { GRID_W, GRID_H, ENEMY_SCALE } from '../config/constants.js';
 import { updateProjectile } from '../entities/projectile.js';
 
 export function createProjectileManager() {
@@ -32,14 +32,17 @@ export function createProjectileManager() {
         const cellY = Math.round(projectile.y);
 
         if (projectile.owner === 'enemy') {
-          // 적 발사체: 적과는 상호작용하지 않고 오직 뱀만 본다 — 머리는 즉사, 몸은 길이 감소.
+          // 적 발사체: 적과는 상호작용하지 않고 오직 뱀만 본다. 머리 피격은 항상 즉사(headHit)로
+          // 고정이지만, 몸 피격 시 효과는 쏜 쪽(turret.js/hunter.js 등)마다 다를 수 있어서
+          // onBodyHit/onHeadHit 콜백으로 위임한다 — 여기서 어떤 타입인지 특별 취급하지 않는다.
           if (cellX === snake.head.x && cellY === snake.head.y) {
+            projectile.onHeadHit?.(world);
             headHit = true;
             return false;
           }
           const hitsBody = snake.segments.slice(1).some(s => s.x === cellX && s.y === cellY);
           if (hitsBody) {
-            snake.shrink(TURRET_PROJECTILE_SHRINK);
+            projectile.onBodyHit?.(world);
             return false;
           }
           return true;

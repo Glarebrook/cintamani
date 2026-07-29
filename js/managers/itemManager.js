@@ -1,4 +1,4 @@
-import { GRID_W, GRID_H, FOOD_INTERVAL_MS, FOOD_MAX_COUNT, CELL_SIZE } from '../config/constants.js';
+import { GRID_W, GRID_H, FOOD_SPAWN_MIN_MS, FOOD_SPAWN_MAX_MS, FOOD_MAX_COUNT, CELL_SIZE } from '../config/constants.js';
 import { ItemTypes } from '../content/items/index.js';
 
 export class ItemManager {
@@ -7,17 +7,24 @@ export class ItemManager {
   }
 
   reset() {
-    this.foods = [];         // 현재 필드의 먹이들 (최대 FOOD_MAX_COUNT개)
+    this.foods = [];         // 현재 필드의 먹이들
     this.foodTimer = 0;      // 마지막 스폰 시도로부터 경과 시간 (ms)
+    this.nextFoodDelay = this._randomFoodDelay();
   }
 
-  // dt: 프레임 경과 시간 (ms)
+  // dt: 프레임 경과 시간 (ms). 무작위 타이머 스폰만 FOOD_MAX_COUNT 상한을 지킨다 —
+  // 처치/포획 보상 스폰(spawnAt/spawnSpecific)은 이 상한과 무관하게 항상 나온다.
   update(dt, snake, enemyManager = null) {
     this.foodTimer += dt;
-    if (this.foods.length < FOOD_MAX_COUNT && this.foodTimer >= FOOD_INTERVAL_MS) {
+    if (this.foods.length < FOOD_MAX_COUNT && this.foodTimer >= this.nextFoodDelay) {
       this.foodTimer = 0;
+      this.nextFoodDelay = this._randomFoodDelay();
       this.spawnItem(snake, enemyManager);
     }
+  }
+
+  _randomFoodDelay() {
+    return FOOD_SPAWN_MIN_MS + Math.floor(Math.random() * (FOOD_SPAWN_MAX_MS - FOOD_SPAWN_MIN_MS + 1));
   }
 
   ensureFood(snake, enemyManager = null) {
@@ -44,15 +51,21 @@ export class ItemManager {
     this.foods.push({ ...pos, type: typeDef.id });
   }
 
-  // spawnEligible 판정 없이 지정한 타입 하나를 즉시 스폰한다 — 무작위 등장 풀 밖에서
-  // (적 처치 보상 등) 직접 트리거되는 아이템용.
+  // spawnEligible 판정과 FOOD_MAX_COUNT 상한 없이, 맵의 무작위 빈 칸에 지정한 타입 하나를
+  // 즉시 스폰한다 — 적 처치/포획 보상처럼 "반드시 나와야 하는" 이벤트용. 상한을 지키면
+  // 필드가 이미 꽉 찼을 때 애써 얻은 보상이 조용히 사라져버리므로 일부러 무시한다.
   spawnSpecific(typeId, snake, enemyManager = null) {
-    if (this.foods.length >= FOOD_MAX_COUNT) return;
-
     const pos = this._findFreeCell(snake, enemyManager);
     if (!pos) return;
 
     this.foods.push({ ...pos, type: typeId });
+  }
+
+  // spawnSpecific과 같지만 무작위 빈 칸이 아니라 정확히 지정한 좌표(x, y)에 스폰한다 —
+  // "적이 처치된 바로 그 자리에 즉시 나타난다"는 요구를 그대로 구현한 것. 이 좌표는 보통
+  // 방금 제거된 적이 있던 칸이라 항상 비어 있다고 가정한다.
+  spawnAt(typeId, x, y) {
+    this.foods.push({ x, y, type: typeId });
   }
 
   _findFreeCell(snake, enemyManager) {

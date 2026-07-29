@@ -1,4 +1,6 @@
-import { TICK_MS, PROJECTILE_DAMAGE } from './config/constants.js';
+import {
+  TICK_MS, PROJECTILE_DAMAGE, SNAKE_INITIAL_LENGTH, TEST_MODE_INITIAL_LENGTH, TEST_MODE_TICK_MS,
+} from './config/constants.js';
 import { createEventBus } from './core/eventBus.js';
 import { createStateMachine } from './core/stateMachine.js';
 import { createGameLoop } from './core/loop.js';
@@ -24,15 +26,21 @@ function createWorld() {
     startTime: 0,
   };
 
-  world.reset = () => {
-    world.snake = new Snake();
+  // testMode: 여러 기능을 빠르게 시험해보기 위한 시작 상태 — 기본보다 긴 초기 길이 +
+  // 더 빠른 시작 속도로 바로 시작한다. 타이틀 화면에서 Enter(기본)/T(테스트) 중 골라 진입한다.
+  world.reset = ({ testMode = false } = {}) => {
+    world.snake = new Snake(testMode ? TEST_MODE_INITIAL_LENGTH : SNAKE_INITIAL_LENGTH);
     world.enemyManager = new EnemyManager();
     world.itemManager = new ItemManager();
     world.projectileManager = createProjectileManager();
     // 속도/공격력 먹이가 이 값들을 게임 도중 바꾼다 — 상수(TICK_MS/PROJECTILE_DAMAGE)는
     // 매번 재시작 시의 기본값일 뿐, 실제로 참조되는 값은 항상 world.stats 쪽이어야 한다.
     // enemyKillStacks: 적 타입 id -> 처치 누적 수 (예: chaser.js의 처치 5스택당 보라 먹이 보상)
-    world.stats = { tickMs: TICK_MS, attackDamage: PROJECTILE_DAMAGE, enemyKillStacks: {} };
+    world.stats = {
+      tickMs: testMode ? TEST_MODE_TICK_MS : TICK_MS,
+      attackDamage: PROJECTILE_DAMAGE,
+      enemyKillStacks: {},
+    };
     world.startTime = performance.now();
     world.itemManager.ensureFood(world.snake, world.enemyManager);
   };
@@ -46,8 +54,8 @@ export function createGame(canvas) {
   const hud = createHud();
   const world = createWorld();
 
-  function startGame() {
-    world.reset();
+  function startGame(options) {
+    world.reset(options);
     stateMachine.transition('playing');
   }
 

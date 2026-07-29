@@ -2,15 +2,16 @@
 // 이동 입력(input.js)과 분리된, 단일 바인딩 테이블 패턴.
 function normalizeKey(e) {
   if (e.key === ' ' || e.code === 'Space') return 'Space';
+  // 알파벳 한 글자 키는 대소문자 구분 없이 매칭 — Shift/Caps Lock 상태와 무관하게 눌리도록.
+  if (e.key.length === 1) return e.key.toLowerCase();
   return e.key;
 }
 
 function createActionBindings() {
   const bindings = new Map();
-  let anyHandler = null; // 특정 키가 아니라 "아무 키나" 반응해야 하는 화면(타이틀 등)용
 
   window.addEventListener('keydown', e => {
-    const handler = bindings.get(normalizeKey(e)) || anyHandler;
+    const handler = bindings.get(normalizeKey(e));
     if (!handler) return;
     e.preventDefault();
     handler(e);
@@ -19,8 +20,6 @@ function createActionBindings() {
   return {
     bind(key, handler) { bindings.set(key, handler); },
     unbind(key) { bindings.delete(key); },
-    bindAny(handler) { anyHandler = handler; },
-    unbindAny() { anyHandler = null; },
   };
 }
 

@@ -1,5 +1,5 @@
 import {
-  ENEMY_SCALE, CHASER_HP, CHASER_BASE_MOVE_MS, CHASER_AGGRO_ZONE_SCALE, CHASER_KILL_STACK_THRESHOLD,
+  ENEMY_SCALE, CHASER_HP, CHASER_BASE_MOVE_MS, CHASER_AGGRO_ZONE_SCALE,
 } from '../../config/constants.js';
 
 const DIRS = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
@@ -24,11 +24,12 @@ export const chaserEnemy = {
   displayText: enemy => String(enemy.hp),
   collidesWithHead: true,
 
-  moveIntervalMs(enemy, { snake }) {
-    return isPlayerInRange(enemy, snake) ? CHASER_BASE_MOVE_MS / 2 : CHASER_BASE_MOVE_MS;
+  moveIntervalMs(enemy, world) {
+    return isPlayerInRange(enemy, world.snake) ? CHASER_BASE_MOVE_MS / 2 : CHASER_BASE_MOVE_MS;
   },
 
-  move(enemy, { snake }) {
+  move(enemy, world) {
+    const snake = world.snake;
     if (isPlayerInRange(enemy, snake)) {
       const head = snake.head;
       const dx = head.x - enemy.x;
@@ -39,15 +40,10 @@ export const chaserEnemy = {
     return DIRS[Math.floor(Math.random() * DIRS.length)];
   },
 
-  // 투사체로 처치됐을 때만 호출된다(포획류 제거와는 다른 경로) — 타입별 처치 스택을 쌓다가
-  // 임계치에 도달하면 보라 먹이를 하나 직접 스폰한다. 보라 먹이는 이 트리거로만 등장하도록
-  // content/items/tripleGrowth.js 쪽에서 일반 무작위 스폰 후보에서 제외해뒀다.
+  // 투사체로 처치될 때마다(스택 없이, 매번) 처치된 바로 그 자리에 노란 먹이를 즉시 스폰한다.
+  // 노란 먹이는 무작위 스폰 풀에서 제외돼 있어서(content/items/speedUp.js의 spawnEligible:false)
+  // 이 트리거로만 등장한다.
   onDefeated(world, enemy) {
-    const stacks = world.stats.enemyKillStacks;
-    const count = (stacks[enemy.typeDef.id] || 0) + 1;
-    stacks[enemy.typeDef.id] = count;
-    if (count % CHASER_KILL_STACK_THRESHOLD === 0) {
-      world.itemManager.spawnSpecific('tripleGrowth', world.snake, world.enemyManager);
-    }
+    world.itemManager.spawnAt('speedUp', enemy.x, enemy.y);
   },
 };

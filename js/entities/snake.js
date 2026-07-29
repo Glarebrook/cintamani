@@ -1,13 +1,13 @@
-import { GRID_W, GRID_H } from '../config/constants.js';
+import { GRID_W, GRID_H, SNAKE_INITIAL_LENGTH } from '../config/constants.js';
 
 export class Snake {
-  constructor() {
+  constructor(initialLength = SNAKE_INITIAL_LENGTH) {
     const cx = Math.floor(GRID_W / 2);
     const cy = Math.floor(GRID_H / 2);
     // 머리가 가장 오른쪽, 몸이 왼쪽으로 연장
     // segments[0] = 뱀-머리, segments[1] = 뱀-몸1, segments[2] = 뱀-몸2
     const initialSegments = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < initialLength; i++) {
       initialSegments.push({ x: cx - i, y: cy });
     }
     this.segments = initialSegments;

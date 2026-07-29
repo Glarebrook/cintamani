@@ -15,7 +15,6 @@ ES 모듈(`<script type="module">`)로 구성되어 있으며, 여전히 빌드 
 /
 ├── index.html                 진입점 — <script type="module" src="js/main.js">
 ├── css/style.css               전역 스타일
-├── V1/                         구버전(전역 스크립트 방식) 원본 보관 — 참고/롤백용, 더 이상 서빙되지 않음
 └── js/
     ├── main.js                 초기화 진입점 — 캔버스 크기 설정, Game 생성/시작
     ├── game.js                 최상위 오케스트레이터 — World 생성, GameLoop/StateMachine 연결

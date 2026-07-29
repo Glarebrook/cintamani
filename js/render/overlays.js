@@ -15,10 +15,12 @@ export function renderTitleScreen(ctx) {
   ctx.font = `bold ${Math.floor(ch * 0.12)}px monospace`;
   ctx.fillText('CINTAMANI', cw / 2, ch / 2);
 
-  // 위아래로 통통 튀는 느낌을 주는 사인파 오프셋
+  // 두 선택지를 하나의 덩어리로 보고 위아래로 통통 튀는 느낌을 준다 — 개별 줄마다
+  // 따로 튀면 두 줄 사이 간격이 흔들려 보이므로, 같은 오프셋을 함께 적용한다.
   const bounce = Math.sin(performance.now() / 200) * (ch * 0.02);
   ctx.font = `${Math.floor(ch * 0.035)}px monospace`;
-  ctx.fillText('Press any button', cw / 2, ch * 0.8 + bounce);
+  ctx.fillText('ENTER - GAME START', cw / 2, ch * 0.76 + bounce);
+  ctx.fillText('T - TEST MODE', cw / 2, ch * 0.84 + bounce);
 }
 
 // 향후 Paused/Menu 오버레이도 이 파일에 나란히 추가한다.

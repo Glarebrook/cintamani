@@ -52,11 +52,18 @@ export function createPlayingState({ world, hud, ctx }) {
       world.itemManager.ensureFood(world.snake, world.enemyManager);
       world.itemManager.update(dt, world.snake, world.enemyManager);
       const { headHit } = world.projectileManager.update(dt, world);
-      world.enemyManager.updateMovement(dt, world.snake);
+      world.enemyManager.updateMovement(dt, world);
       world.enemyManager.updateAbilities(dt, world);
       // 적 발사체에 머리를 맞는 건 onTick의 충돌 순서와 무관하게 어느 프레임에서든 일어날 수
       // 있는 별개의 사건이라, onTick을 기다리지 않고 여기서 바로 die() 처리한다.
       if (headHit) return die();
+      // 스스로 움직이는 적(chaser/hunter)은 위치가 매 프레임 바뀌는데, 충돌 판정은 원래
+      // onTick에서만(뱀 틱마다 한 번) 확인했다 — 적의 이동 간격이 뱀의 틱 간격보다 짧으면
+      // (예: chaser 추격 중 60ms), 적이 머리 칸을 지나가는 순간이 두 틱 판정 사이에 끼어서
+      // 화면상으론 겹쳤는데도 게임오버가 안 되는 것처럼 보일 수 있다. 그래서 이동 갱신
+      // 직후 여기서도 같은 판정을 한 번 더 돌린다 — onTick의 판정(머리가 적 쪽으로 움직여
+      // 들어가는 경우)과 서로 다른 경우를 잡아내는 상호 보완 관계라 중복이 아니다.
+      if (checkEnemyHeadCollision(world)) return die();
     },
 
     onTick() {
@@ -93,7 +100,7 @@ export function createPlayingState({ world, hud, ctx }) {
       }
 
       world.snake.checkGrowth();
-      world.enemyManager.update(world.stats.tickMs, world.snake);
+      world.enemyManager.update(world.stats.tickMs, world);
     },
 
     render() {

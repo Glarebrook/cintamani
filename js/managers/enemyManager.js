@@ -1,4 +1,6 @@
-import { GRID_W, GRID_H, CELL_SIZE, ENEMY_SCALE, ENEMY_SPAWN_MIN_MS, ENEMY_SPAWN_MAX_MS } from '../config/constants.js';
+import {
+  GRID_W, GRID_H, CELL_SIZE, ENEMY_SCALE, ENEMY_SPAWN_MIN_MS, ENEMY_SPAWN_MAX_MS, ENEMY_MAX_COUNT,
+} from '../config/constants.js';
 import { EnemyTypes } from '../content/enemies/index.js';
 
 export class EnemyManager {
@@ -15,12 +17,14 @@ export class EnemyManager {
 
   // 스폰 타이머 전용 — 간격(3000~7000ms)이 매우 커서 틱 단위(world.stats.tickMs)로
   // 누적해도 오차가 무시할 만하다. 실시간에 더 민감한 이동은 updateMovement()가 따로 맡는다.
-  update(dt, snake) {
+  // world 전체를 받는 이유: hunter.js처럼 spawnEligible이 world.stats.tickMs(뱀의 현재 속도)를
+  // 봐야 하는 타입이 있어서 — snake만으로는 그런 조건을 표현할 수 없다.
+  update(dt, world) {
     this.spawnTimer += dt;
     if (this.spawnTimer >= this.nextSpawnDelay) {
       this.spawnTimer = 0;
       this.nextSpawnDelay = this._randomSpawnDelay();
-      this._trySpawn(snake);
+      this._trySpawn(world);
     }
   }
 
@@ -30,16 +34,18 @@ export class EnemyManager {
   // 게임 틱(onTick, 뱀 이동 간격)이 아니라 매 프레임(onFrame)의 실제 dt로 호출해야 한다 —
   // 추격 상태의 이동 간격(예: 60ms)이 현재 뱀 틱 간격(예: 120ms)보다 짧을 수 있어서,
   // 틱당 한 번만 갱신하면 "틱마다 최대 1칸"이라는 상한에 묶여 속도 차이가 드러나지 않는다.
-  updateMovement(dt, snake) {
+  // world 전체를 넘기는 이유: hunter.js처럼 "플레이어와 같은 속도"로 움직이려면
+  // moveIntervalMs가 world.stats.tickMs(뱀의 현재 속도)를 읽어야 한다.
+  updateMovement(dt, world) {
     for (const enemy of this.enemies) {
       if (!enemy.typeDef.move) continue;
 
       enemy.moveTimer = (enemy.moveTimer || 0) + dt;
-      const interval = enemy.typeDef.moveIntervalMs(enemy, { snake });
+      const interval = enemy.typeDef.moveIntervalMs(enemy, world);
       if (enemy.moveTimer < interval) continue;
       enemy.moveTimer = 0;
 
-      const dir = enemy.typeDef.move(enemy, { snake });
+      const dir = enemy.typeDef.move(enemy, world);
       if (!dir) continue;
 
       const nx = enemy.x + dir.x;
@@ -52,12 +58,14 @@ export class EnemyManager {
 
   // ability/abilityCooldownMs를 가진 타입만 대상 — 이동과 같은 패턴이지만 위치를 바꾸는 대신
   // 임의의 부수효과(예: 투사체 발사)를 실행한다. world 전체가 필요해서(투사체 매니저 등)
-  // updateMovement(snake만 필요)와는 별도 메서드로 분리했다.
+  // updateMovement와는 별도 메서드로 분리했다.
   // 쿨다운은 "발사 자체"에만 걸린다 — 조건(예: 정렬 여부) 판정은 쿨다운이 다 찬 뒤로는 매 프레임
   // 계속 재시도한다. 예전엔 쿨다운 시점에 딱 한 번만 조건을 체크했는데, 그러면 그 정확한 순간에
   // 우연히 조건을 만족하지 않는 한 몇 초씩 그냥 넘어가버려서 "거의 안 쏜다"처럼 보였다.
   // ability()가 실제로 발동했으면 true를 반환해야 타이머가 리셋된다 — 조건 미충족으로 false를
-  // 반환하면 타이머는 그대로 두고 다음 프레임에 바로 다시 시도한다.
+  // 반환하면 타이머는 그대로 두고 다음 프레임에 바로 다시 시도한다. dt도 함께 넘겨서
+  // (hunter.js처럼) 쿨다운 게이트 자체를 사실상 끄고(0으로 두고) 스스로 내부 타이밍을
+  // 관리하는 타입도 만들 수 있게 한다.
   updateAbilities(dt, world) {
     for (const enemy of this.enemies) {
       if (!enemy.typeDef.ability) continue;
@@ -67,7 +75,7 @@ export class EnemyManager {
       enemy.abilityTimer += dt;
       if (enemy.abilityTimer < cooldown) continue;
 
-      const fired = enemy.typeDef.ability(enemy, world);
+      const fired = enemy.typeDef.ability(enemy, world, dt);
       if (fired) enemy.abilityTimer = 0;
     }
   }
@@ -102,7 +110,10 @@ export class EnemyManager {
     return removed;
   }
 
-  _trySpawn(snake) {
+  _trySpawn(world) {
+    if (this.enemies.length >= ENEMY_MAX_COUNT) return;
+
+    const snake = world.snake;
     const candidates = [];
     for (let x = 0; x < GRID_W; x++) {
       for (let y = 0; y < GRID_H; y++) {
@@ -115,7 +126,7 @@ export class EnemyManager {
     }
     if (candidates.length === 0) return;
 
-    const eligibleTypes = EnemyTypes.all().filter(def => !def.spawnEligible || def.spawnEligible({ snake }));
+    const eligibleTypes = EnemyTypes.all().filter(def => !def.spawnEligible || def.spawnEligible(world));
     if (eligibleTypes.length === 0) return;
 
     const chosen = candidates[Math.floor(Math.random() * candidates.length)];
