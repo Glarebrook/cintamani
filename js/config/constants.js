@@ -34,6 +34,9 @@ export const ORANGE_FOOD_DROP_CHANCE = 0.1; // 포획 처치 시 이 확률로 �
 export const CHASER_HP = 10; // 3번적(추격형) 기본 체력
 export const CHASER_BASE_MOVE_MS = 120; // 3번적 평상시 이동 간격(ms) - 뱀의 TICK_MS와는 별개로 고정값
 export const CHASER_AGGRO_ZONE_SCALE = 5; // 3번적이 플레이어를 감지하는 범위 배율 - 적 외곽선 기준
+export const CHASER_WANDER_STEP_MIN = 3; // 평상시 배회 중 한 방향을 유지하는 최소 이동 횟수
+export const CHASER_WANDER_STEP_MAX = 8; // 평상시 배회 중 한 방향을 유지하는 최대 이동 횟수
+export const CHASER_WANDER_JITTER_CHANCE = 0.15; // 배회 중 이번 한 걸음만 무작위 방향으로 튈 확률 - 유지 중인 방향/걸음 수는 그대로 진행됨
 
 export const TURRET_FIRE_COOLDOWN_MS = 1200; // 4번적(고정 포탑형) 발사 쿨다운(ms) - 이 주기마다 정렬 상태를 체크해서 쏨
 export const TURRET_PROJECTILE_SPEED = PROJECTILE_SPEED * 2; // 4번적 투사체 속도 - 플레이어 투사체의 2배
@@ -56,4 +59,4 @@ export const LEADERBOARD_NAME_MAX_LENGTH = 200; // 서버 쪽 mb_substr 제한�
 
 // 화면 우측 하단에 표시되는 빌드 표시 — index.html의 캐시 무효화 ?v= 값과 항상 같이 올린다.
 // 코드를 바꿀 때마다 갱신해서, 새로고침한 화면이 실제로 최신 코드인지 눈으로 바로 확인할 수 있게 한다.
-export const BUILD_VERSION = '20260729-19';
+export const BUILD_VERSION = '20260729-20';
