@@ -3,6 +3,7 @@ import {
 } from '../config/constants.js';
 import { toPixel } from '../core/gridMath.js';
 import { getCaptureZoneBounds } from '../content/mechanics/encirclement.js';
+import { getSnakeSprite } from './snakeSprites.js';
 
 const COLOR = {
   bg:   '#111111',
@@ -43,23 +44,35 @@ function itemLayer(ctx, world) {
   world.itemManager.render(ctx);
 }
 
-// 꼬리부터 그려서 머리가 위에 오도록. 평소 색을 먼저 다 그린 뒤, 아이템 섭취 직후 머리에서
-// 꼬리 쪽으로 흘러가는 반짝임 웨이브 중인 칸에만 그 아이템 색을 낮은 불투명도(ITEM_FLASH_ALPHA)로
-// 덧씌운다 - 색을 통째로 바꿔치기하지 않고 은은하게 틴트만 얹는 방식(Snake.isFlashingAt 참고).
-function snakeLayer(ctx, world) {
+// 꼬리부터 그려서 머리가 위에 오도록. 각 칸마다 assets/snake/의 방향별 이미지(head_*/body_*)가
+// 로드돼 있으면 그걸 그리고, 없으면(아직 그림을 안 채워 넣은 방향) 기존 색깔 네모로 대체한다
+// (getSnakeSprite가 null을 반환 - snakeSprites.js 참고). 꼬리는 body 이미지를 그대로 쓴다.
+// 그 위에, 아이템 섭취 직후 머리에서 꼬리 쪽으로 흘러가는 반짝임 웨이브 중인 칸에만 그 아이템
+// 색을 낮은 불투명도(ITEM_FLASH_ALPHA)로 덧씌운다 - 이미지 위에도 똑같이 틴트로만 얹힌다.
+function drawSnakeCell(ctx, part, dir, s, fallbackColor) {
   const C = CELL_SIZE;
+  const sprite = getSnakeSprite(part, dir);
+  if (sprite) {
+    ctx.drawImage(sprite, s.x * C, s.y * C, C, C);
+  } else {
+    ctx.fillStyle = fallbackColor;
+    ctx.fillRect(s.x * C, s.y * C, C, C);
+  }
+}
+
+function snakeLayer(ctx, world) {
   const snake = world.snake;
   const segments = snake.segments;
 
-  ctx.fillStyle = COLOR.body;
   for (let i = segments.length - 1; i >= 1; i--) {
     const s = segments[i];
-    ctx.fillRect(s.x * C, s.y * C, C, C);
+    const ahead = segments[i - 1]; // 머리 쪽으로 한 칸 - 이 칸이 향하는 방향
+    const dir = { x: ahead.x - s.x, y: ahead.y - s.y };
+    drawSnakeCell(ctx, 'body', dir, s, COLOR.body);
   }
 
   const head = snake.head;
-  ctx.fillStyle = COLOR.head;
-  ctx.fillRect(head.x * C, head.y * C, C, C);
+  drawSnakeCell(ctx, 'head', snake.dir, head, COLOR.head);
 
   if (snake.flashColor) {
     ctx.globalAlpha = ITEM_FLASH_ALPHA;
