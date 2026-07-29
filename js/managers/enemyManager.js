@@ -13,12 +13,62 @@ export class EnemyManager {
     this.nextEnemyId = 1;
   }
 
+  // 스폰 타이머 전용 — 간격(3000~7000ms)이 매우 커서 틱 단위(world.stats.tickMs)로
+  // 누적해도 오차가 무시할 만하다. 실시간에 더 민감한 이동은 updateMovement()가 따로 맡는다.
   update(dt, snake) {
     this.spawnTimer += dt;
     if (this.spawnTimer >= this.nextSpawnDelay) {
       this.spawnTimer = 0;
       this.nextSpawnDelay = this._randomSpawnDelay();
       this._trySpawn(snake);
+    }
+  }
+
+  // move/moveIntervalMs를 가진 타입만 대상 — 정적인 적(기본/파란)은 그냥 지나친다.
+  // 각 적은 자기 typeDef가 알려주는 간격(moveIntervalMs)마다 자기 typeDef가 알려주는
+  // 방향(move)으로 한 칸씩 이동한다. 특정 타입을 여기서 하드코딩하지 않는다.
+  // 게임 틱(onTick, 뱀 이동 간격)이 아니라 매 프레임(onFrame)의 실제 dt로 호출해야 한다 —
+  // 추격 상태의 이동 간격(예: 60ms)이 현재 뱀 틱 간격(예: 120ms)보다 짧을 수 있어서,
+  // 틱당 한 번만 갱신하면 "틱마다 최대 1칸"이라는 상한에 묶여 속도 차이가 드러나지 않는다.
+  updateMovement(dt, snake) {
+    for (const enemy of this.enemies) {
+      if (!enemy.typeDef.move) continue;
+
+      enemy.moveTimer = (enemy.moveTimer || 0) + dt;
+      const interval = enemy.typeDef.moveIntervalMs(enemy, { snake });
+      if (enemy.moveTimer < interval) continue;
+      enemy.moveTimer = 0;
+
+      const dir = enemy.typeDef.move(enemy, { snake });
+      if (!dir) continue;
+
+      const nx = enemy.x + dir.x;
+      const ny = enemy.y + dir.y;
+      if (nx < 0 || nx >= GRID_W || ny < 0 || ny >= GRID_H) continue;
+      enemy.x = nx;
+      enemy.y = ny;
+    }
+  }
+
+  // ability/abilityCooldownMs를 가진 타입만 대상 — 이동과 같은 패턴이지만 위치를 바꾸는 대신
+  // 임의의 부수효과(예: 투사체 발사)를 실행한다. world 전체가 필요해서(투사체 매니저 등)
+  // updateMovement(snake만 필요)와는 별도 메서드로 분리했다.
+  // 쿨다운은 "발사 자체"에만 걸린다 — 조건(예: 정렬 여부) 판정은 쿨다운이 다 찬 뒤로는 매 프레임
+  // 계속 재시도한다. 예전엔 쿨다운 시점에 딱 한 번만 조건을 체크했는데, 그러면 그 정확한 순간에
+  // 우연히 조건을 만족하지 않는 한 몇 초씩 그냥 넘어가버려서 "거의 안 쏜다"처럼 보였다.
+  // ability()가 실제로 발동했으면 true를 반환해야 타이머가 리셋된다 — 조건 미충족으로 false를
+  // 반환하면 타이머는 그대로 두고 다음 프레임에 바로 다시 시도한다.
+  updateAbilities(dt, world) {
+    for (const enemy of this.enemies) {
+      if (!enemy.typeDef.ability) continue;
+
+      const cooldown = enemy.typeDef.abilityCooldownMs(enemy, world);
+      if (enemy.abilityTimer === undefined) enemy.abilityTimer = cooldown; // 스폰 직후부터 발사 가능
+      enemy.abilityTimer += dt;
+      if (enemy.abilityTimer < cooldown) continue;
+
+      const fired = enemy.typeDef.ability(enemy, world);
+      if (fired) enemy.abilityTimer = 0;
     }
   }
 
@@ -42,10 +92,14 @@ export class EnemyManager {
     return enemy.hp <= 0;
   }
 
+  // 제거된 적 객체들을 반환한다 — 호출부(playingState.js)가 그 타입의 onCaptured 같은
+  // 후크를 world와 함께 호출해줄 수 있도록.
   removeByIds(ids) {
-    if (!ids.length) return;
+    if (!ids.length) return [];
     const idSet = new Set(ids);
+    const removed = this.enemies.filter(enemy => idSet.has(enemy.id));
     this.enemies = this.enemies.filter(enemy => !idSet.has(enemy.id));
+    return removed;
   }
 
   _trySpawn(snake) {

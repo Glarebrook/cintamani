@@ -40,6 +40,13 @@ export class Snake {
     });
   }
 
+  // 꼬리 쪽에서 n칸 제거 — 머리 1칸은 항상 남긴다 (갈색 먹이용)
+  shrink(n) {
+    const removable = Math.max(0, this.segments.length - 1);
+    const count = Math.min(n, removable);
+    if (count > 0) this.segments.splice(-count, count);
+  }
+
   occupies(x, y) {
     return this.segments.some(s => s.x === x && s.y === y);
   }

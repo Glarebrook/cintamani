@@ -1,7 +1,6 @@
 import { Actions } from '../input/actions.js';
 import { render as renderScene } from '../render/renderer.js';
 import { renderGameOverOverlay } from '../render/overlays.js';
-import { TICK_MS, PROJECTILE_DAMAGE } from '../config/constants.js';
 
 export function createGameOverState({ world, ctx, hud, onRestart }) {
   let survivalMs = 0;
@@ -23,9 +22,8 @@ export function createGameOverState({ world, ctx, hud, onRestart }) {
       renderGameOverOverlay(ctx);
       hud.update({
         size: world.snake.segments.length,
-        speed: TICK_MS,
-        attack: PROJECTILE_DAMAGE,
-        snakeSpeed: TICK_MS,
+        attack: world.stats.attackDamage,
+        snakeSpeed: world.stats.tickMs,
         survivalSeconds: survivalMs / 1000,
       });
     },

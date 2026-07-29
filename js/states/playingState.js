@@ -10,7 +10,7 @@ import {
 } from '../systems/collision.js';
 import { ItemTypes } from '../content/items/index.js';
 import { createProjectile } from '../entities/projectile.js';
-import { TICK_MS, PROJECTILE_SPEED, PROJECTILE_DAMAGE } from '../config/constants.js';
+import { PROJECTILE_SPEED } from '../config/constants.js';
 
 // 이동 → 벽 → 포획 메커니즘 → 자기충돌(포획 시 눈감아줌) → 적충돌 → 먹이 → 성장 → 적 스폰 타이머,
 // V1의 Game._tick() 순서를 그대로 유지한다. 순서를 바꾸면 포획 시 통과 동작이 깨진다.
@@ -29,7 +29,7 @@ export function createPlayingState({ world, hud, ctx }) {
       y: head.y,
       dir,
       speed: PROJECTILE_SPEED,
-      damage: PROJECTILE_DAMAGE,
+      damage: world.stats.attackDamage,
       color: '#f5d742',
     }));
   }
@@ -51,7 +51,12 @@ export function createPlayingState({ world, hud, ctx }) {
     onFrame(dt) {
       world.itemManager.ensureFood(world.snake, world.enemyManager);
       world.itemManager.update(dt, world.snake, world.enemyManager);
-      world.projectileManager.update(dt, world.enemyManager, world.snake);
+      const { headHit } = world.projectileManager.update(dt, world);
+      world.enemyManager.updateMovement(dt, world.snake);
+      world.enemyManager.updateAbilities(dt, world);
+      // 적 발사체에 머리를 맞는 건 onTick의 충돌 순서와 무관하게 어느 프레임에서든 일어날 수
+      // 있는 별개의 사건이라, onTick을 기다리지 않고 여기서 바로 die() 처리한다.
+      if (headHit) return die();
     },
 
     onTick() {
@@ -75,7 +80,10 @@ export function createPlayingState({ world, hud, ctx }) {
         passThroughGrace = capturedThisTick; // 방금 막 포획됐다면(충돌 없이) 다음 틱까지는 통과 여지를 남겨둠
       }
 
-      if (capturedIds.length) world.enemyManager.removeByIds(capturedIds);
+      if (capturedIds.length) {
+        const removed = world.enemyManager.removeByIds(capturedIds);
+        for (const enemy of removed) enemy.typeDef.onCaptured?.(world, enemy);
+      }
 
       if (checkEnemyHeadCollision(world)) return die();
 
@@ -85,16 +93,15 @@ export function createPlayingState({ world, hud, ctx }) {
       }
 
       world.snake.checkGrowth();
-      world.enemyManager.update(TICK_MS, world.snake);
+      world.enemyManager.update(world.stats.tickMs, world.snake);
     },
 
     render() {
       renderScene(ctx, world);
       hud.update({
         size: world.snake.segments.length,
-        speed: TICK_MS,
-        attack: PROJECTILE_DAMAGE,
-        snakeSpeed: TICK_MS,
+        attack: world.stats.attackDamage,
+        snakeSpeed: world.stats.tickMs,
         survivalSeconds: (performance.now() - world.startTime) / 1000,
       });
     },

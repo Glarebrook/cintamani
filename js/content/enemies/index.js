@@ -3,7 +3,11 @@
 import { createRegistry } from '../../core/registry.js';
 import { basicEnemy } from './basic.js';
 import { sentinelEnemy } from './sentinel.js';
+import { chaserEnemy } from './chaser.js';
+import { turretEnemy } from './turret.js';
 
 export const EnemyTypes = createRegistry();
 EnemyTypes.register(basicEnemy.id, basicEnemy);
 EnemyTypes.register(sentinelEnemy.id, sentinelEnemy);
+EnemyTypes.register(chaserEnemy.id, chaserEnemy);
+EnemyTypes.register(turretEnemy.id, turretEnemy);
