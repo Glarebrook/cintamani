@@ -1,5 +1,6 @@
 import {
   GRID_W, GRID_H, CELL_SIZE, ENEMY_SCALE, ENEMY_SPAWN_MIN_MS, ENEMY_SPAWN_MAX_MS, ENEMY_MAX_COUNT,
+  ENEMY_MIN_SPAWN_DISTANCE_FROM_HEAD,
 } from '../config/constants.js';
 import { EnemyTypes } from '../content/enemies/index.js';
 
@@ -130,12 +131,16 @@ export class EnemyManager {
       : 0;
 
     const snake = world.snake;
+    const head = snake.head;
     const candidates = [];
     for (let x = margin; x < GRID_W - margin; x++) {
       for (let y = margin; y < GRID_H - margin; y++) {
         const occupiedBySnake = snake.occupies(x, y);
         const occupiedByEnemy = this.enemies.some(enemy => enemy.x === x && enemy.y === y);
-        if (!occupiedBySnake && !occupiedByEnemy) {
+        // 뱀 머리와 너무 가까운 칸은 후보에서 제외 - 반응할 틈도 없이 바로 충돌해 죽는 것 방지.
+        // 다른 정사각형 범위 판정(포획존, 추격 감지범위 등)과 같은 체비셰프 거리 방식.
+        const tooCloseToHead = Math.max(Math.abs(x - head.x), Math.abs(y - head.y)) < ENEMY_MIN_SPAWN_DISTANCE_FROM_HEAD;
+        if (!occupiedBySnake && !occupiedByEnemy && !tooCloseToHead) {
           candidates.push({ x, y });
         }
       }

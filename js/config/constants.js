@@ -16,6 +16,7 @@ export const ATTACK_UP_DELTA = 1; // 주황 먹이 1개당 투사체 공격력 �
 export const ENEMY_SPAWN_MIN_MS = 3000; // 적 최소 생성 간격 (ms)
 export const ENEMY_SPAWN_MAX_MS = 7000; // 적 최대 생성 간격 (ms)
 export const ENEMY_MAX_COUNT = 3; // 화면에 동시에 존재할 수 있는 적의 최대 수
+export const ENEMY_MIN_SPAWN_DISTANCE_FROM_HEAD = 8; // 적이 뱀 머리로부터 이 칸(체비셰프 거리) 이상 떨어진 곳에만 생성됨 - 너무 가까이 생성돼 반응할 틈 없이 죽는 것 방지
 export const PROJECTILE_SPEED = 48; // 투사체 이동 속도 (칸/초) - 원래 60에서 20% 감소
 export const PROJECTILE_DAMAGE = 1; // 투사체 공격력
 export const PROJECTILE_SIZE_RATIO = 0.4; // 뱀 도트 대비 투사체 크기 비율
@@ -55,4 +56,4 @@ export const LEADERBOARD_NAME_MAX_LENGTH = 200; // 서버 쪽 mb_substr 제한�
 
 // 화면 우측 하단에 표시되는 빌드 표시 — index.html의 캐시 무효화 ?v= 값과 항상 같이 올린다.
 // 코드를 바꿀 때마다 갱신해서, 새로고침한 화면이 실제로 최신 코드인지 눈으로 바로 확인할 수 있게 한다.
-export const BUILD_VERSION = '20260729-18';
+export const BUILD_VERSION = '20260729-19';
