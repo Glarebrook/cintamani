@@ -13,6 +13,8 @@ export class Snake {
     this.segments = initialSegments;
     this.dir = { x: 1, y: 0 };
     this.growQueue = []; // 성장 대기 위치들 (먹이를 먹은 좌표) — 여러 개를 동시에 기다릴 수 있음
+    this.flashColor = null; // 아이템 섭취 시 잠깐 머리를 이 색으로 그림 (null이면 평소 색)
+    this.flashRemainingMs = 0;
   }
 
   get head() { return this.segments[0]; }
@@ -45,6 +47,20 @@ export class Snake {
     const removable = Math.max(0, this.segments.length - 1);
     const count = Math.min(n, removable);
     if (count > 0) this.segments.splice(-count, count);
+  }
+
+  // 아이템 섭취 시 호출 - durationMs 동안 머리를 color로 그리다가 저절로 꺼진다.
+  startFlash(color, durationMs) {
+    this.flashColor = color;
+    this.flashRemainingMs = durationMs;
+  }
+
+  // onFrame(dt)에서 매 프레임 호출 - onTick이 아니라 실제 프레임 dt로 줄여야 반짝임 길이가
+  // 뱀 이동 간격(TICK_MS)에 좌우되지 않고 항상 일정하게 느껴진다.
+  updateFlash(dt) {
+    if (!this.flashColor) return;
+    this.flashRemainingMs -= dt;
+    if (this.flashRemainingMs <= 0) this.flashColor = null;
   }
 
   occupies(x, y) {

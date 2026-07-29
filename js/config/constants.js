@@ -52,6 +52,11 @@ export const HUNTER_BURST_COUNT = 3; // 정렬 진입 시 한 번에 쏘는 발�
 export const HUNTER_BURST_WINDOW_MS = 1000; // 버스트 전체(첫 발~마지막 발)가 걸치는 시간(ms)
 export const HUNTER_BURST_SHOT_INTERVAL_MS = HUNTER_BURST_WINDOW_MS / (HUNTER_BURST_COUNT - 1); // 발사 간 간격 - 0/500/1000ms에 3발
 
+export const PARTICLE_BURST_COUNT = 8; // 적 처치/포획 시 한 번에 튀는 파티클 개수
+export const PARTICLE_SPEED = 12; // 파티클 이동 속도 (칸/초)
+export const PARTICLE_LIFE_MS = 300; // 파티클이 튄 뒤 사라지기까지 걸리는 시간(ms)
+export const ITEM_FLASH_DURATION_MS = 150; // 아이템 섭취 시 뱀 머리가 그 아이템 색으로 반짝이는 시간(ms)
+
 // 리더보드 API - api/leaderboard.php와 항상 짝을 맞춘다. 상대경로라서 NAS 배포 경로가 어디든 동작.
 export const LEADERBOARD_API_URL = 'api/leaderboard.php';
 export const LEADERBOARD_MAX_ENTRIES = 20; // 서버가 유지하는 상위 기록 수와 동일하게 맞춘다
@@ -59,4 +64,4 @@ export const LEADERBOARD_NAME_MAX_LENGTH = 200; // 서버 쪽 mb_substr 제한�
 
 // 화면 우측 하단에 표시되는 빌드 표시 — index.html의 캐시 무효화 ?v= 값과 항상 같이 올린다.
 // 코드를 바꿀 때마다 갱신해서, 새로고침한 화면이 실제로 최신 코드인지 눈으로 바로 확인할 수 있게 한다.
-export const BUILD_VERSION = '20260729-23';
+export const BUILD_VERSION = '20260729-24';

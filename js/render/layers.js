@@ -51,7 +51,9 @@ function snakeLayer(ctx, world) {
     ctx.fillRect(s.x * C, s.y * C, C, C);
   }
 
-  ctx.fillStyle = COLOR.head;
+  // 아이템 섭취 직후 짧게 그 아이템 색으로 머리를 그린다 (Snake.startFlash/updateFlash 참고) -
+  // 반짝이는 중이 아니면(flashColor가 null이면) 평소 머리색 그대로.
+  ctx.fillStyle = world.snake.flashColor || COLOR.head;
   ctx.fillRect(world.snake.head.x * C, world.snake.head.y * C, C, C);
 }
 
@@ -72,6 +74,24 @@ function enemyLayer(ctx, world) {
   world.enemyManager.render(ctx);
 }
 
+// 적 처치/포획 지점에서 managers/particleManager.js가 만든 파티클을 그린다 - 투사체처럼
+// 원으로 그리되, 남은 수명 비율(life/maxLife)만큼 알파를 줄여서 사라지는 느낌을 낸다.
+// 모든 것 위에(적 위에도) 보여야 눈에 띄므로 enemyLayer 다음, versionLayer 앞에 둔다.
+function particleLayer(ctx, world) {
+  const C = CELL_SIZE;
+  const size = Math.max(1, Math.floor(C * PROJECTILE_SIZE_RATIO));
+  for (const particle of world.particleManager.particles) {
+    const px = particle.x * C;
+    const py = particle.y * C;
+    ctx.globalAlpha = Math.max(0, particle.life / particle.maxLife);
+    ctx.fillStyle = particle.color;
+    ctx.beginPath();
+    ctx.arc(px + size / 2, py + size / 2, size / 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
 // 지금 화면이 실제로 최신 코드를 불러온 게 맞는지 눈으로 바로 확인할 수 있도록,
 // 우측 하단에 작게 빌드 표시를 띄운다.
 function versionLayer(ctx) {
@@ -84,4 +104,6 @@ function versionLayer(ctx) {
   ctx.fillText(BUILD_VERSION, cw - 4, ch - 3);
 }
 
-export const layers = [backgroundLayer, captureZoneLayer, itemLayer, snakeLayer, projectileLayer, enemyLayer, versionLayer];
+export const layers = [
+  backgroundLayer, captureZoneLayer, itemLayer, snakeLayer, projectileLayer, enemyLayer, particleLayer, versionLayer,
+];

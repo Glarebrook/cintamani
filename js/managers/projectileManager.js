@@ -1,4 +1,6 @@
-import { GRID_W, GRID_H, ENEMY_SCALE } from '../config/constants.js';
+import {
+  GRID_W, GRID_H, ENEMY_SCALE, PARTICLE_BURST_COUNT, PARTICLE_SPEED, PARTICLE_LIFE_MS,
+} from '../config/constants.js';
 import { updateProjectile } from '../entities/projectile.js';
 
 export function createProjectileManager() {
@@ -65,6 +67,10 @@ export function createProjectileManager() {
           if (shouldRemove) {
             enemyManager.enemies.splice(hitIndex, 1);
             hitEnemy.typeDef.onDefeated?.(world, hitEnemy);
+            world.particleManager.spawnBurst({
+              x: hitEnemy.x, y: hitEnemy.y, color: hitEnemy.typeDef.color,
+              count: PARTICLE_BURST_COUNT, speed: PARTICLE_SPEED, life: PARTICLE_LIFE_MS,
+            });
           }
           return false;
         }

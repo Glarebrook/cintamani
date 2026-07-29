@@ -10,7 +10,9 @@ import {
 } from '../systems/collision.js';
 import { ItemTypes } from '../content/items/index.js';
 import { createProjectile } from '../entities/projectile.js';
-import { PROJECTILE_SPEED } from '../config/constants.js';
+import {
+  PROJECTILE_SPEED, PARTICLE_BURST_COUNT, PARTICLE_SPEED, PARTICLE_LIFE_MS, ITEM_FLASH_DURATION_MS,
+} from '../config/constants.js';
 
 // 이동 → 벽 → 포획 메커니즘 → 자기충돌(포획 시 눈감아줌) → 적충돌 → 먹이 → 성장 → 적 스폰 타이머,
 // V1의 Game._tick() 순서를 그대로 유지한다. 순서를 바꾸면 포획 시 통과 동작이 깨진다.
@@ -52,6 +54,8 @@ export function createPlayingState({ world, hud, ctx }) {
       world.itemManager.ensureFood(world.snake, world.enemyManager);
       world.itemManager.update(dt, world.snake, world.enemyManager);
       const { headHit } = world.projectileManager.update(dt, world);
+      world.particleManager.update(dt);
+      world.snake.updateFlash(dt);
       world.enemyManager.updateMovement(dt, world);
       world.enemyManager.updateAbilities(dt, world);
       // 적 발사체에 머리를 맞는 건 onTick의 충돌 순서와 무관하게 어느 프레임에서든 일어날 수
@@ -89,14 +93,22 @@ export function createPlayingState({ world, hud, ctx }) {
 
       if (capturedIds.length) {
         const removed = world.enemyManager.removeByIds(capturedIds);
-        for (const enemy of removed) enemy.typeDef.onCaptured?.(world, enemy);
+        for (const enemy of removed) {
+          enemy.typeDef.onCaptured?.(world, enemy);
+          world.particleManager.spawnBurst({
+            x: enemy.x, y: enemy.y, color: enemy.typeDef.color,
+            count: PARTICLE_BURST_COUNT, speed: PARTICLE_SPEED, life: PARTICLE_LIFE_MS,
+          });
+        }
       }
 
       if (checkEnemyHeadCollision(world)) return die();
 
       const eaten = checkFoodPickup(world);
       if (eaten) {
-        ItemTypes.get(eaten.type).onPickup(world, eaten);
+        const def = ItemTypes.get(eaten.type);
+        def.onPickup(world, eaten);
+        world.snake.startFlash(def.color, ITEM_FLASH_DURATION_MS);
       }
 
       world.snake.checkGrowth();

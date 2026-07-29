@@ -10,6 +10,7 @@ import { Snake } from './entities/snake.js';
 import { EnemyManager } from './managers/enemyManager.js';
 import { ItemManager } from './managers/itemManager.js';
 import { createProjectileManager } from './managers/projectileManager.js';
+import { createParticleManager } from './managers/particleManager.js';
 import { createPlayingState } from './states/playingState.js';
 import { createGameOverState } from './states/gameOverState.js';
 import { createTitleState } from './states/titleState.js';
@@ -24,6 +25,7 @@ function createWorld() {
     enemyManager: null,
     itemManager: null,
     projectileManager: null,
+    particleManager: null,
     stats: null,
     startTime: 0,
     testMode: false,
@@ -39,6 +41,7 @@ function createWorld() {
     world.enemyManager = new EnemyManager();
     world.itemManager = new ItemManager();
     world.projectileManager = createProjectileManager();
+    world.particleManager = createParticleManager();
     // 속도/공격력 먹이가 이 값들을 게임 도중 바꾼다 — 상수(TICK_MS/PROJECTILE_DAMAGE)는
     // 매번 재시작 시의 기본값일 뿐, 실제로 참조되는 값은 항상 world.stats 쪽이어야 한다.
     // enemyKillStacks: 적 타입 id -> 처치 누적 수 (예: chaser.js의 처치 5스택당 보라 먹이 보상)
