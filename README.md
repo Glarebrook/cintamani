@@ -15,7 +15,6 @@ ES 모듈(`<script type="module">`)로 구성되어 있으며, 여전히 빌드 
 /
 ├── index.html                 진입점 — <script type="module" src="js/main.js">
 ├── css/style.css               전역 스타일
-├── assets/snake/               뱀 머리/몸통 스프라이트 이미지 (선택 사항 — 없으면 색깔 네모로 대체, README.md에 템플릿)
 └── js/
     ├── main.js                 초기화 진입점 — 캔버스 크기 설정, Game 생성/시작
     ├── game.js                 최상위 오케스트레이터 — World 생성, GameLoop/StateMachine 연결

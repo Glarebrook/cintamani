@@ -1,4 +1,4 @@
-export const CELL_SIZE = 16;     // 격자 1칸 = 16픽셀 (정사각형 보장) - 뱀 스프라이트 이미지가 잘 보이도록 8에서 확대
+export const CELL_SIZE = 8;      // 격자 1칸 = 8픽셀 (정사각형 보장)
 export const GRID_W   = 100;     // 필드 가로 격자 수
 export const GRID_H   = 40;      // 필드 세로 격자 수
 export const TICK_MS  = 120;     // 뱀 이동 간격 (ms)
@@ -66,4 +66,4 @@ export const LEADERBOARD_NAME_MAX_LENGTH = 200; // 서버 쪽 mb_substr 제한�
 
 // 화면 우측 하단에 표시되는 빌드 표시 — index.html의 캐시 무효화 ?v= 값과 항상 같이 올린다.
 // 코드를 바꿀 때마다 갱신해서, 새로고침한 화면이 실제로 최신 코드인지 눈으로 바로 확인할 수 있게 한다.
-export const BUILD_VERSION = '20260729-29';
+export const BUILD_VERSION = '20260729-28';
