@@ -51,6 +51,9 @@ export function createPlayingState({ world, hud, ctx }) {
 
   return {
     enter() {
+      // Input은 world와 무관한 싱글턴이라 world.reset()으로 안 지워진다 - 이전 판(게임오버
+      // 화면 등)에서 무심코 눌러둔 방향키가 새 판 시작과 동시에 그대로 적용되는 걸 막는다.
+      Input.reset();
       pendingDirection = null;
       passThroughGrace = false;
       Actions.bind('Space', fire);
