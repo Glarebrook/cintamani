@@ -59,6 +59,29 @@ export const ITEM_FLASH_DURATION_MS = 60; // 아이템 섭취 시 몸 각 칸이
 export const ITEM_FLASH_STAGGER_MS = 8; // 반짝임이 머리에서 꼬리 쪽으로 한 칸씩 넘어가는 데 걸리는 지연(ms)
 export const ITEM_FLASH_ALPHA = 0.45; // 반짝임 색을 평소 색 위에 덧씌우는 불투명도 - 완전 교체가 아니라 은은한 틴트
 
+// 실시간 점수 - 생존시간/아이템/처치는 매 순간 발생하는 대로 world.stats.survivalScore/
+// itemScore/killScore에 각각 누적되고, 길이·속도 가산점은 이번 판 최대 길이/최고 속도 기준으로
+// 매 프레임 새로 계산돼 더해진다(core/score.js 참고). 상단 스탯 바(#stat-score)에 매 프레임
+// 다시 반영해서 부드럽게 계속 올라가는 것처럼 보이게 한다.
+export const SCORE_PER_SECOND = 10; // 생존 1초당 기본 점수 - onFrame마다 dt만큼 조금씩 누적
+export const SCORE_PER_ITEM = 20; // 아이템 1개 섭취당 기본 점수
+// 처치 점수는 방식에 따라 다르다 - 포획(고리를 만들어 가두는 것)이 투사체로 쏘는 것보다
+// 훨씬 어려운데도 예전엔 둘 다 같은 점수였다. 시뮬레이션(200판, 안전우선+먹이추구 봇)에서
+// 포획 처치가 사실상 한 번도 안 나온 걸 근거로 4배 차등을 뒀다.
+export const SCORE_PER_KILL_PROJECTILE = 50; // 투사체로 적 처치 시
+export const SCORE_PER_KILL_CAPTURE = 200; // 포획(encirclement)으로 적 처치 시
+export const SCORE_PER_LENGTH_SEGMENT = 15; // 시작 길이보다 늘어난 칸 하나당 가산점(도달한 최대 길이 기준 - 이후 줄어들어도 깎이지 않음)
+// 속도 가산점 - 시뮬레이션에서 전체 점수의 0.1%에 불과할 만큼 사실상 무의미했던 걸 근거로
+// 20 -> 100으로 5배 올림. 속도 먹이는 처치 보상으로만 드물게 나오고, 얻은 뒤에도 계속 위험을
+// 감수해야 하는데 예전 가중치는 그 난이도를 전혀 반영하지 못했다.
+export const SCORE_PER_SPEED_LEVEL = 100; // 시작 속도 단계보다 올라간 단계 하나당 가산점 - 길이 가산점과 같은 방식(도달한 최고 속도 기준, 이후 느려져도 안 깎임)
+export const SCORE_POPUP_LIFE_MS = 700; // 아이템/처치 시 "+20" 팝업이 뜬 뒤 사라지기까지 걸리는 시간(ms)
+export const SCORE_POPUP_RISE_SPEED = 2; // 팝업이 위로 떠오르는 속도 (칸/초)
+
+// 화면에 보여지는 뱀속도 시작값을 16→20으로 맞추기 위한 표시 전용 보정치 - 점수 계산에는 안 쓰고
+// hud.js가 화면에 그릴 때만 더한다 (내부 속도 단계 자체가 바뀌는 건 아님)
+export const SPEED_LEVEL_DISPLAY_OFFSET = 4;
+
 // 리더보드 API - api/leaderboard.php와 항상 짝을 맞춘다. 상대경로라서 NAS 배포 경로가 어디든 동작.
 export const LEADERBOARD_API_URL = 'api/leaderboard.php';
 export const LEADERBOARD_MAX_ENTRIES = 20; // 서버가 유지하는 상위 기록 수와 동일하게 맞춘다
@@ -66,4 +89,4 @@ export const LEADERBOARD_NAME_MAX_LENGTH = 200; // 서버 쪽 mb_substr 제한�
 
 // 화면 우측 하단에 표시되는 빌드 표시 — index.html의 캐시 무효화 ?v= 값과 항상 같이 올린다.
 // 코드를 바꿀 때마다 갱신해서, 새로고침한 화면이 실제로 최신 코드인지 눈으로 바로 확인할 수 있게 한다.
-export const BUILD_VERSION = '20260729-29';
+export const BUILD_VERSION = '20260730-35';

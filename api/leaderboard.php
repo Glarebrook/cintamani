@@ -1,8 +1,10 @@
 <?php
 // 리더보드 API — GET: 상위 기록 조회, POST: 기록 제출.
 // 정적 파일만 서빙하던 사이트에 처음 추가되는 서버 코드. 캐주얼한 홈 NAS 게임이라
-// 본격적인 부정행위 방지는 하지 않는다 — 클라이언트가 보낸 생존시간을 그대로 신뢰하되,
-// 형식이 말이 안 되는 값(음수, 24시간 초과 등)만 걸러낸다.
+// 본격적인 부정행위 방지는 하지 않는다 — 클라이언트가 보낸 값을 그대로 신뢰하되,
+// 형식이 말이 안 되는 값(음수, 상한 초과 등)만 걸러낸다.
+// 정렬/순위 기준은 score(js/core/score.js의 getTotalScore) — survivalMs(생존시간)는 참고용으로
+// 같이 저장만 하고 순위에는 안 쓴다.
 declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
@@ -12,6 +14,11 @@ const DATA_FILE = __DIR__ . '/data/leaderboard.json';
 const MAX_ENTRIES = 20;
 const MAX_NAME_LENGTH = 200;
 const MAX_SURVIVAL_MS = 24 * 60 * 60 * 1000; // 24시간 - 이보다 크면 값이 이상한 것으로 간주
+const MAX_SCORE = 10_000_000; // 넉넉한 상한 - 이보다 크면 값이 이상한 것으로 간주
+// js/config/constants.js의 SCORE_PER_SECOND와 반드시 값을 맞춰야 함(자동 동기화 안 됨) -
+// score 필드가 없는 예전 기록(생존시간 기준 순위였던 시절)을 "생존 점수만 있고 가산점은
+// 0"으로 간주해 점수로 환산하는 용도로만 쓰인다.
+const LEGACY_SCORE_PER_SECOND = 10;
 
 function read_entries(): array {
     if (!file_exists(DATA_FILE)) {
@@ -19,7 +26,16 @@ function read_entries(): array {
     }
     $raw = file_get_contents(DATA_FILE);
     $data = json_decode($raw, true);
-    return is_array($data) ? $data : [];
+    $entries = is_array($data) ? $data : [];
+    // score 없는 예전 기록을 생존시간 기준으로 환산해서 채워 넣는다 - 다음 POST 때 파일에
+    // 그대로 저장되므로(write_entries가 전체 배열을 다시 씀) 한 번만 지나면 영구히 채워진다.
+    foreach ($entries as &$entry) {
+        if (!isset($entry['score'])) {
+            $entry['score'] = (int) round(($entry['survivalMs'] ?? 0) / 1000 * LEGACY_SCORE_PER_SECOND);
+        }
+    }
+    unset($entry);
+    return $entries;
 }
 
 // $entries는 이미 정렬/제한된 상태로 넘어온다고 가정 - 파일 쓰기만 담당.
@@ -75,9 +91,14 @@ if ($method === 'POST') {
         fail(400, 'invalid survivalMs');
     }
 
+    $score = isset($body['score']) ? (float) $body['score'] : NAN;
+    if (!is_finite($score) || $score < 0 || $score > MAX_SCORE) {
+        fail(400, 'invalid score');
+    }
+
     $entries = read_entries();
-    $entries[] = ['name' => $name, 'survivalMs' => $survivalMs, 'ts' => time()];
-    usort($entries, fn($a, $b) => $b['survivalMs'] <=> $a['survivalMs']);
+    $entries[] = ['name' => $name, 'survivalMs' => $survivalMs, 'score' => $score, 'ts' => time()];
+    usort($entries, fn($a, $b) => $b['score'] <=> $a['score']);
     $entries = array_slice($entries, 0, MAX_ENTRIES);
     write_entries($entries);
 

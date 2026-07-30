@@ -2,9 +2,11 @@ import { Actions } from '../input/actions.js';
 import { render as renderScene } from '../render/renderer.js';
 import { renderGameOverOverlay } from '../render/overlays.js';
 import { fetchLeaderboard, submitScore } from '../services/leaderboardApi.js';
+import { getTotalScore } from '../core/score.js';
 
 export function createGameOverState({ world, ctx, hud, panel, onRestart }) {
   let survivalMs = 0;
+  let scoreBreakdown = null;
   let lastEntries = [];
   // enter()/exit()마다 증가시켜, 늦게 도착한 이전 회차의 fetch/submit 응답이
   // 이미 새로 시작된 회차의 패널 상태를 덮어쓰지 않도록 막는다.
@@ -34,10 +36,11 @@ export function createGameOverState({ world, ctx, hud, panel, onRestart }) {
       return;
     }
     const myGeneration = generation;
-    const result = await submitScore(rawName, survivalMs);
+    const score = scoreBreakdown?.total ?? 0;
+    const result = await submitScore(rawName, survivalMs, score);
     if (myGeneration !== generation || phase !== 'entry') return;
     if (result.ok) {
-      const mineIndex = result.entries.findIndex(e => e.name === rawName && e.survivalMs === survivalMs);
+      const mineIndex = result.entries.findIndex(e => e.name === rawName && e.score === score);
       finish(result.entries, mineIndex);
     } else {
       finish(lastEntries, -1);
@@ -52,6 +55,7 @@ export function createGameOverState({ world, ctx, hud, panel, onRestart }) {
       const myGeneration = generation;
       phase = 'entry';
       survivalMs = payload?.survivalMs ?? 0;
+      scoreBreakdown = payload?.scoreBreakdown ?? null;
 
       // 테스트 모드(타이틀의 T)로 진행한 판은 공유 리더보드에 올리지 않는다 - 길이/속도를
       // 인위적으로 올려 시작한 판이라 정상 플레이 기록과 섞이면 순위표 의미가 없어진다.
@@ -66,7 +70,7 @@ export function createGameOverState({ world, ctx, hud, panel, onRestart }) {
       const result = await fetchLeaderboard();
       if (myGeneration !== generation || phase !== 'entry') return;
       lastEntries = result.ok ? result.entries : [];
-      panel.showEntryPhase(lastEntries, survivalMs);
+      panel.showEntryPhase(lastEntries, survivalMs, scoreBreakdown);
     },
     exit() {
       generation++;
@@ -85,6 +89,7 @@ export function createGameOverState({ world, ctx, hud, panel, onRestart }) {
         attack: world.stats.attackDamage,
         snakeSpeed: world.stats.tickMs,
         survivalSeconds: survivalMs / 1000,
+        score: getTotalScore(world),
       });
     },
   };

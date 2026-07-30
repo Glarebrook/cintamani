@@ -1,7 +1,7 @@
 import { LEADERBOARD_NAME_MAX_LENGTH } from '../config/constants.js';
 
-function formatSeconds(survivalMs) {
-  return `${(survivalMs / 1000).toFixed(1)}s`;
+function formatScore(score) {
+  return `${Math.round(score).toLocaleString()}점`;
 }
 
 // api/leaderboard.php가 각 기록에 남기는 ts(초 단위 유닉스 타임스탬프)를 로컬 시간대의
@@ -28,7 +28,9 @@ function formatTimestamp(ts) {
 export function createLeaderboardPanel() {
   const overlay = document.getElementById('leaderboard-overlay');
   const form = document.getElementById('leaderboard-form');
-  const myScore = document.getElementById('leaderboard-my-score');
+  const myScoreTotal = document.getElementById('my-score-total');
+  const myScoreBreakdown = document.getElementById('my-score-breakdown');
+  const myScoreBonusDetail = document.getElementById('my-score-bonus-detail');
   const nameInput = document.getElementById('leaderboard-name-input');
   const skipBtn = document.getElementById('leaderboard-skip-btn');
   const list = document.getElementById('leaderboard-list');
@@ -46,6 +48,17 @@ export function createLeaderboardPanel() {
   });
   skipBtn.addEventListener('click', () => handlers.onSkip?.());
 
+  // ul을 비우고 text 배열을 한 줄씩 <li>로 채운다 - "A + B + C"처럼 문장으로 잇지 않고
+  // 영수증처럼 항목마다 줄바꿈해서 한눈에 훑어볼 수 있게 한다(가시성 피드백으로 변경).
+  function renderBulletList(ul, lines) {
+    ul.textContent = '';
+    for (const text of lines) {
+      const li = document.createElement('li');
+      li.textContent = text;
+      ul.appendChild(li);
+    }
+  }
+
   // 기록 하나당 한 줄 - 이름/기록은 눈에 잘 띄게 크게, 타임스탬프는 부가정보로 작게.
   function renderList(entries, mineIndex) {
     list.textContent = '';
@@ -56,15 +69,17 @@ export function createLeaderboardPanel() {
       const rank = document.createElement('span');
       rank.className = 'leaderboard-name';
       rank.textContent = `${i + 1}. ${entry.name}`;
-      const time = document.createElement('span');
-      time.className = 'leaderboard-record';
-      time.textContent = formatSeconds(entry.survivalMs);
+      const record = document.createElement('span');
+      record.className = 'leaderboard-record';
+      // score 없는 예전 기록은 서버(api/leaderboard.php)가 GET 응답 시점에 생존시간 기준으로
+      // 환산해서 항상 채워 보내주므로, 여기서 survivalMs로 폴백할 필요가 없다.
+      record.textContent = formatScore(entry.score);
       const date = document.createElement('span');
       date.className = 'leaderboard-date';
       date.textContent = formatTimestamp(entry.ts);
 
       li.appendChild(rank);
-      li.appendChild(time);
+      li.appendChild(record);
       li.appendChild(date);
       list.appendChild(li);
     });
@@ -75,13 +90,34 @@ export function createLeaderboardPanel() {
     show() { overlay.classList.remove('hidden'); },
     hide() { overlay.classList.add('hidden'); },
     // survivalMs: 이번 판 기록 - 등록할지 말지 판단하려면 기존 순위표와 비교해볼 수 있게
-    // 눈에 띄게 보여줘야 한다는 피드백으로 추가. leaderboardViewState는 특정 판의 기록이
-    // 없으므로 이 인자를 안 넘기고, 그 경우 자리를 비워둔다(showResultPhase는 별개로
-    // 폼 자체를 숨기므로 이 텍스트도 같이 안 보이게 됨).
-    showEntryPhase(entries, survivalMs) {
+    // 눈에 띄게 보여줘야 한다는 피드백으로 추가. scoreBreakdown(core/score.js의
+    // getScoreBreakdown 결과)은 그 최종 점수가 어떻게 나왔는지(생존/처치/아이템/가산점) 항목별로
+    // 보여주기 위함. leaderboardViewState는 특정 판의 기록이 없으므로 둘 다 안 넘기고,
+    // 그 경우 자리를 비워둔다(showResultPhase는 별개로 폼 자체를 숨기므로 이 텍스트도 같이
+    // 안 보이게 됨).
+    showEntryPhase(entries, survivalMs, scoreBreakdown) {
       form.classList.remove('hidden');
       footer.textContent = '';
-      myScore.textContent = survivalMs != null ? `이번 기록: ${formatSeconds(survivalMs)}` : '';
+      if (scoreBreakdown) {
+        const r = Math.round;
+        myScoreTotal.textContent = `이번 기록: ${r(scoreBreakdown.total).toLocaleString()}점`;
+        renderBulletList(myScoreBreakdown, [
+          `· 생존 ${r(scoreBreakdown.survival)}점`,
+          `· 아이템획득 ${r(scoreBreakdown.item)}점`,
+          `· 적 처치 ${r(scoreBreakdown.kill)}점`,
+          `· 가산점 ${r(scoreBreakdown.bonus)}점`,
+        ]);
+        // 가산점 세부는 위 "가산점" 한 줄을 풀어서 보여주는 하위 항목이라, 별도 목록으로
+        // 들여쓰기해서(css) 시각적으로 그 아래에 딸린 항목임을 나타낸다.
+        renderBulletList(myScoreBonusDetail, [
+          `– 최대 길이 +${r(scoreBreakdown.lengthBonus)}점`,
+          `– 최대 속도 +${r(scoreBreakdown.speedBonus)}점`,
+        ]);
+      } else {
+        myScoreTotal.textContent = '';
+        renderBulletList(myScoreBreakdown, []);
+        renderBulletList(myScoreBonusDetail, []);
+      }
       nameInput.value = '';
       renderList(entries, -1);
       nameInput.focus();

@@ -1,5 +1,5 @@
 import {
-  GRID_W, GRID_H, ENEMY_SCALE, PARTICLE_BURST_COUNT, PARTICLE_SPEED, PARTICLE_LIFE_MS,
+  GRID_W, GRID_H, ENEMY_SCALE, PARTICLE_BURST_COUNT, PARTICLE_SPEED, PARTICLE_LIFE_MS, SCORE_PER_KILL_PROJECTILE,
 } from '../config/constants.js';
 import { updateProjectile } from '../entities/projectile.js';
 
@@ -71,6 +71,8 @@ export function createProjectileManager() {
               x: hitEnemy.x, y: hitEnemy.y, color: hitEnemy.typeDef.color,
               count: PARTICLE_BURST_COUNT, speed: PARTICLE_SPEED, life: PARTICLE_LIFE_MS,
             });
+            world.stats.killScore += SCORE_PER_KILL_PROJECTILE;
+            world.scorePopupManager.spawn(hitEnemy.x, hitEnemy.y, SCORE_PER_KILL_PROJECTILE);
           }
           return false;
         }

@@ -19,10 +19,12 @@ export function fetchLeaderboard() {
   return request();
 }
 
-export function submitScore(name, survivalMs) {
+// score: core/score.js의 getTotalScore(world) 결과 - 서버가 이걸 기준으로 정렬한다.
+// survivalMs도 같이 보내서 서버에 참고용으로 저장은 하지만, 순위 정렬에는 안 쓰인다.
+export function submitScore(name, survivalMs, score) {
   return request({
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, survivalMs }),
+    body: JSON.stringify({ name, survivalMs, score }),
   });
 }

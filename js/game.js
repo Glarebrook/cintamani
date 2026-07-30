@@ -11,6 +11,8 @@ import { EnemyManager } from './managers/enemyManager.js';
 import { ItemManager } from './managers/itemManager.js';
 import { createProjectileManager } from './managers/projectileManager.js';
 import { createParticleManager } from './managers/particleManager.js';
+import { createScorePopupManager } from './managers/scorePopupManager.js';
+import { getSpeedLevel } from './core/speedLevel.js';
 import { createPlayingState } from './states/playingState.js';
 import { createGameOverState } from './states/gameOverState.js';
 import { createTitleState } from './states/titleState.js';
@@ -26,6 +28,7 @@ function createWorld() {
     itemManager: null,
     projectileManager: null,
     particleManager: null,
+    scorePopupManager: null,
     stats: null,
     startTime: 0,
     testMode: false,
@@ -37,18 +40,31 @@ function createWorld() {
   // 리더보드 제출을 건너뛸 수 있다(테스트 모드 기록이 정상 판과 섞이면 안 됨).
   world.reset = ({ testMode = false } = {}) => {
     world.testMode = testMode;
-    world.snake = new Snake(testMode ? TEST_MODE_INITIAL_LENGTH : SNAKE_INITIAL_LENGTH);
+    const initialLength = testMode ? TEST_MODE_INITIAL_LENGTH : SNAKE_INITIAL_LENGTH;
+    world.snake = new Snake(initialLength);
     world.enemyManager = new EnemyManager();
     world.itemManager = new ItemManager();
     world.projectileManager = createProjectileManager();
     world.particleManager = createParticleManager();
+    world.scorePopupManager = createScorePopupManager();
+    const tickMs = testMode ? TEST_MODE_TICK_MS : TICK_MS;
+    const initialSpeedLevel = getSpeedLevel(tickMs);
     // 속도/공격력 먹이가 이 값들을 게임 도중 바꾼다 — 상수(TICK_MS/PROJECTILE_DAMAGE)는
     // 매번 재시작 시의 기본값일 뿐, 실제로 참조되는 값은 항상 world.stats 쪽이어야 한다.
     // enemyKillStacks: 적 타입 id -> 처치 누적 수 (예: chaser.js의 처치 5스택당 보라 먹이 보상)
+    // survivalScore/killScore/itemScore/initialLength/maxLength/initialSpeedLevel/maxSpeedLevel:
+    // 실시간 점수 계산용 - core/score.js의 getScoreBreakdown/getTotalScore 참고.
     world.stats = {
-      tickMs: testMode ? TEST_MODE_TICK_MS : TICK_MS,
+      tickMs,
       attackDamage: PROJECTILE_DAMAGE,
       enemyKillStacks: {},
+      survivalScore: 0,
+      killScore: 0,
+      itemScore: 0,
+      initialLength,
+      maxLength: initialLength,
+      initialSpeedLevel,
+      maxSpeedLevel: initialSpeedLevel,
     };
     world.startTime = performance.now();
     world.itemManager.ensureFood(world.snake, world.enemyManager);
@@ -89,8 +105,8 @@ export function createGame(canvas) {
     'title'
   );
 
-  world.eventBus.on('playerDied', ({ survivalMs }) => {
-    stateMachine.transition('gameOver', { survivalMs });
+  world.eventBus.on('playerDied', ({ survivalMs, scoreBreakdown }) => {
+    stateMachine.transition('gameOver', { survivalMs, scoreBreakdown });
   });
 
   const loop = createGameLoop({

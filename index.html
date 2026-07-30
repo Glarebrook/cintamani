@@ -4,22 +4,29 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cintamani</title>
-  <link rel="stylesheet" href="css/style.css?v=20260729-29" />
+  <link rel="stylesheet" href="css/style.css?v=20260730-35" />
 </head>
 <body>
   <div id="game-wrapper">
     <div id="stats-bar">
-      <span>크기 <span class="val" id="stat-size">3</span></span>
-      <span>공격력 <span class="val" id="stat-attack">1</span></span>
-      <span>뱀속도 <span class="val" id="stat-snake-speed">16</span> 단계</span>
-      <span>생존 <span class="val" id="stat-time">0.0</span> s</span>
+      <div id="stats-left">
+        <span>공격력 <span class="val" id="stat-attack">1</span></span>
+        <span>뱀 길이 <span class="val" id="stat-size">3</span></span>
+        <span>속도 <span class="val" id="stat-snake-speed">20</span></span>
+        <span>생존 <span class="val" id="stat-time">0.0</span> s</span>
+      </div>
+      <div id="stat-score">0</div>
     </div>
     <div id="canvas-stage">
       <canvas id="game-canvas"></canvas>
       <div id="leaderboard-overlay" class="hidden">
         <div id="leaderboard-left">
           <form id="leaderboard-form">
-            <div id="leaderboard-my-score"></div>
+            <div id="leaderboard-my-score">
+              <div id="my-score-total"></div>
+              <ul id="my-score-breakdown"></ul>
+              <ul id="my-score-bonus-detail"></ul>
+            </div>
             <div>이름을 입력하세요</div>
             <input id="leaderboard-name-input" type="text" maxlength="200" autocomplete="off" placeholder="이름 (최대 200자)" />
             <div id="leaderboard-actions">
@@ -36,6 +43,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/main.js?v=20260729-29"></script>
+  <script type="module" src="js/main.js?v=20260730-35"></script>
 </body>
 </html>

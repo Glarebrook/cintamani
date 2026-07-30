@@ -23,9 +23,12 @@ body {
   gap: 8px;
 }
 
+/* 좌측 게임 스탯 + 우측 실시간 점수를 양 끝으로 - 점수는 캔버스(게임 플레이 화면) 밖,
+   이 바의 우측 상단에 위치하게 된다 */
 #stats-bar {
   display: flex;
-  gap: 28px;
+  justify-content: space-between;
+  align-items: baseline;
   color: #888;
   font-family: monospace;
   font-size: 13px;
@@ -33,9 +36,22 @@ body {
   padding: 0 2px;
 }
 
+#stats-left {
+  display: flex;
+  gap: 28px;
+}
+
 #stats-bar .val {
   color: #fff;
   font-weight: bold;
+}
+
+/* 아이템/처치로 오르는 걸 매 프레임 부드럽게 보여주는 실시간 점수 - 다른 스탯보다 눈에
+   띄게 크고 굵게, 강조색으로 표시한다 */
+#stat-score {
+  color: #ffd54f;
+  font-weight: bold;
+  font-size: 18px;
 }
 
 /* width/height은 JS에서 내부 해상도와 1:1로 설정 → 정사각형 픽셀 보장 */
@@ -104,11 +120,39 @@ body {
   display: none;
 }
 
-/* 등록할지 판단하려면 기존 순위표와 비교할 기준이 눈에 바로 보여야 함 - 크고 강조된 색으로 표시 */
+/* 등록할지 판단하려면 기존 순위표와 비교할 기준이 눈에 바로 보여야 함 - 최종 점수는 크고
+   강조된 색으로, 그 아래 항목별 내역/가산점 세부는 부가 정보라 작고 옅게 표시 */
 #leaderboard-my-score {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+#my-score-total {
   font-size: 22px;
   font-weight: bold;
   color: #ffd54f;
+}
+
+/* 영수증처럼 항목을 한 줄씩 나열 - "생존 X + 처치 X + ..."로 문장처럼 잇지 않고 줄바꿈해서
+   한눈에 훑어볼 수 있게 한다. list-style 마커 대신 텍스트로 직접 "·"/"–"를 붙인다
+   (leaderboardPanel.js) - 가운데 정렬 레이아웃에서 브라우저 기본 마커 위치가 어긋나는 걸 피함 */
+#my-score-breakdown, #my-score-bonus-detail {
+  list-style: none;
+  text-align: left;
+}
+
+#my-score-breakdown {
+  font-size: 12px;
+  color: #ccc;
+}
+
+/* 가산점 세부 항목(최대 길이/속도) - 가산점 한 줄을 풀어서 보여주는 하위 항목이라는 걸
+   들여쓰기 + 더 작고 옅은 색으로 나타낸다 */
+#my-score-bonus-detail {
+  font-size: 11px;
+  color: #888;
+  padding-left: 14px;
 }
 
 #leaderboard-name-input {

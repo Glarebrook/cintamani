@@ -12,7 +12,10 @@ import { ItemTypes } from '../content/items/index.js';
 import { createProjectile } from '../entities/projectile.js';
 import {
   PROJECTILE_SPEED, PARTICLE_BURST_COUNT, PARTICLE_SPEED, PARTICLE_LIFE_MS,
+  SCORE_PER_SECOND, SCORE_PER_ITEM, SCORE_PER_KILL_CAPTURE,
 } from '../config/constants.js';
+import { getSpeedLevel } from '../core/speedLevel.js';
+import { getTotalScore, getScoreBreakdown } from '../core/score.js';
 
 // 이동 → 벽 → 포획 메커니즘 → 자기충돌(포획 시 눈감아줌) → 적충돌 → 먹이 → 성장 → 적 스폰 타이머,
 // V1의 Game._tick() 순서를 그대로 유지한다. 순서를 바꾸면 포획 시 통과 동작이 깨진다.
@@ -37,7 +40,13 @@ export function createPlayingState({ world, hud, ctx }) {
   }
 
   function die() {
-    world.eventBus.emit('playerDied', { survivalMs: performance.now() - world.startTime });
+    // scoreBreakdown은 죽는 바로 그 순간의 스냅샷 - survivalMs와 같은 이유로 payload에 담아
+    // 넘긴다(가짜 리더보드 이름 입력 화면이 나중에 world.stats를 다시 읽어서 계산하면, 이미
+    // gameOver로 넘어간 뒤 world.reset()이 다시 불렸을 때 엉뚱한 값을 보여줄 수 있다).
+    world.eventBus.emit('playerDied', {
+      survivalMs: performance.now() - world.startTime,
+      scoreBreakdown: getScoreBreakdown(world),
+    });
   }
 
   return {
@@ -51,10 +60,13 @@ export function createPlayingState({ world, hud, ctx }) {
     },
 
     onFrame(dt) {
+      // 생존 점수는 매 프레임 dt만큼씩 조금씩 더해서, 화면에 부드럽게 계속 올라가는 것처럼 보이게 한다.
+      world.stats.survivalScore += SCORE_PER_SECOND * (dt / 1000);
       world.itemManager.ensureFood(world.snake, world.enemyManager);
       world.itemManager.update(dt, world.snake, world.enemyManager);
       const { headHit } = world.projectileManager.update(dt, world);
       world.particleManager.update(dt);
+      world.scorePopupManager.update(dt);
       world.snake.updateFlash(dt);
       world.enemyManager.updateMovement(dt, world);
       world.enemyManager.updateAbilities(dt, world);
@@ -99,6 +111,8 @@ export function createPlayingState({ world, hud, ctx }) {
             x: enemy.x, y: enemy.y, color: enemy.typeDef.color,
             count: PARTICLE_BURST_COUNT, speed: PARTICLE_SPEED, life: PARTICLE_LIFE_MS,
           });
+          world.stats.killScore += SCORE_PER_KILL_CAPTURE;
+          world.scorePopupManager.spawn(enemy.x, enemy.y, SCORE_PER_KILL_CAPTURE);
         }
       }
 
@@ -109,9 +123,13 @@ export function createPlayingState({ world, hud, ctx }) {
         const def = ItemTypes.get(eaten.type);
         def.onPickup(world, eaten);
         world.snake.startFlash(def.color);
+        world.stats.itemScore += SCORE_PER_ITEM;
+        world.scorePopupManager.spawn(eaten.x, eaten.y, SCORE_PER_ITEM);
       }
 
       world.snake.checkGrowth();
+      world.stats.maxLength = Math.max(world.stats.maxLength, world.snake.segments.length);
+      world.stats.maxSpeedLevel = Math.max(world.stats.maxSpeedLevel, getSpeedLevel(world.stats.tickMs));
       world.enemyManager.update(world.stats.tickMs, world);
     },
 
@@ -122,6 +140,7 @@ export function createPlayingState({ world, hud, ctx }) {
         attack: world.stats.attackDamage,
         snakeSpeed: world.stats.tickMs,
         survivalSeconds: (performance.now() - world.startTime) / 1000,
+        score: getTotalScore(world),
       });
     },
   };

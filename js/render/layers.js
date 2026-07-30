@@ -108,6 +108,21 @@ function particleLayer(ctx, world) {
   ctx.globalAlpha = 1;
 }
 
+// 아이템 섭취/적 처치 지점에서 managers/scorePopupManager.js가 만든 "+20" 팝업을 그린다 -
+// 남은 수명 비율(life/maxLife)만큼 알파를 줄여서 위로 떠오르며 사라지는 느낌을 낸다.
+function scorePopupLayer(ctx, world) {
+  const C = CELL_SIZE;
+  ctx.font = 'bold 12px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  for (const popup of world.scorePopupManager.popups) {
+    ctx.globalAlpha = Math.max(0, popup.life / popup.maxLife);
+    ctx.fillStyle = '#ffd54f';
+    ctx.fillText(popup.text, popup.x * C + C / 2, popup.y * C);
+  }
+  ctx.globalAlpha = 1;
+}
+
 // 지금 화면이 실제로 최신 코드를 불러온 게 맞는지 눈으로 바로 확인할 수 있도록,
 // 우측 하단에 작게 빌드 표시를 띄운다.
 function versionLayer(ctx) {
@@ -121,5 +136,6 @@ function versionLayer(ctx) {
 }
 
 export const layers = [
-  backgroundLayer, captureZoneLayer, itemLayer, snakeLayer, projectileLayer, enemyLayer, particleLayer, versionLayer,
+  backgroundLayer, captureZoneLayer, itemLayer, snakeLayer, projectileLayer, enemyLayer, particleLayer,
+  scorePopupLayer, versionLayer,
 ];
