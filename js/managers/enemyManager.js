@@ -3,6 +3,11 @@ import {
   ENEMY_MIN_SPAWN_DISTANCE_FROM_HEAD,
 } from '../config/constants.js';
 import { EnemyTypes } from '../content/enemies/index.js';
+// 하단 상태창(render/statusPanel.js)의 적 킬 스택 아이콘과 같은 이미지/폴백 규칙을 필드에
+// 스폰되는 적 렌더링에도 그대로 쓴다 - assets/enemies/enemy{id}.png를 여기서도 재사용.
+// drawIcon은 이미지 원본의 투명 여백을 잘라내고 그려서, 그림에 여백이 있어도 색깔 사각형
+// 폴백과 항상 같은 크기로 보이게 한다(직접 ctx.drawImage를 쓰지 않는 이유).
+import { getEnemyIcon, drawIcon } from '../render/statusIcons.js';
 
 export class EnemyManager {
   constructor() {
@@ -169,8 +174,15 @@ export class EnemyManager {
       const x = enemy.x * C - (size - C) / 2;
       const y = enemy.y * C - (size - C) / 2;
 
-      ctx.fillStyle = enemy.typeDef.color;
-      ctx.fillRect(x, y, size, size);
+      // assets/enemies/enemy{id}.png가 있으면 그걸 그리고, 없으면 예전처럼 typeDef.color
+      // 색깔 네모로 대체한다 - 상태창 아이콘과 완전히 같은 폴백 규칙(getEnemyIcon).
+      const icon = getEnemyIcon(enemy.typeDef.id);
+      if (icon) {
+        drawIcon(ctx, icon, x, y, size, size);
+      } else {
+        ctx.fillStyle = enemy.typeDef.color;
+        ctx.fillRect(x, y, size, size);
+      }
 
       ctx.fillStyle = '#ffffff';
       ctx.font = `${Math.max(10, Math.floor(size * 0.5))}px monospace`;

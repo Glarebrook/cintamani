@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cintamani</title>
-  <link rel="stylesheet" href="css/style.css?v=20260730-37" />
+  <link rel="stylesheet" href="css/style.css?v=20260730-46" />
 </head>
 <body>
   <div id="game-wrapper">
@@ -17,32 +17,35 @@
       </div>
       <div id="stat-score">0</div>
     </div>
-    <div id="canvas-stage">
-      <canvas id="game-canvas"></canvas>
-      <div id="leaderboard-overlay" class="hidden">
-        <div id="leaderboard-left">
-          <form id="leaderboard-form">
-            <div id="leaderboard-my-score">
-              <div id="my-score-total"></div>
-              <ul id="my-score-breakdown"></ul>
-              <ul id="my-score-bonus-detail"></ul>
-            </div>
-            <div>이름을 입력하세요</div>
-            <input id="leaderboard-name-input" type="text" maxlength="200" autocomplete="off" placeholder="이름 (최대 200자)" />
-            <div id="leaderboard-actions">
-              <button type="submit">등록</button>
-              <button type="button" id="leaderboard-skip-btn">건너뛰기</button>
-            </div>
-          </form>
-          <div id="leaderboard-footer"></div>
-        </div>
-        <div id="leaderboard-right">
-          <ol id="leaderboard-list"></ol>
+    <div id="play-area">
+      <div id="canvas-stage">
+        <canvas id="game-canvas"></canvas>
+        <div id="leaderboard-overlay" class="hidden">
+          <div id="leaderboard-left">
+            <form id="leaderboard-form">
+              <div id="leaderboard-my-score">
+                <div id="my-score-total"></div>
+                <ul id="my-score-breakdown"></ul>
+                <ul id="my-score-bonus-detail"></ul>
+              </div>
+              <div>이름을 입력하세요</div>
+              <input id="leaderboard-name-input" type="text" maxlength="200" autocomplete="off" placeholder="이름 (최대 200자)" />
+              <div id="leaderboard-actions">
+                <button type="submit">등록</button>
+                <button type="button" id="leaderboard-skip-btn">건너뛰기</button>
+              </div>
+            </form>
+            <div id="leaderboard-footer"></div>
+          </div>
+          <div id="leaderboard-right">
+            <ol id="leaderboard-list"></ol>
+          </div>
         </div>
       </div>
+      <canvas id="status-canvas"></canvas>
     </div>
   </div>
 
-  <script type="module" src="js/main.js?v=20260730-37"></script>
+  <script type="module" src="js/main.js?v=20260730-46"></script>
 </body>
 </html>

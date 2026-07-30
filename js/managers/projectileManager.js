@@ -73,6 +73,8 @@ export function createProjectileManager() {
             });
             world.stats.killScore += SCORE_PER_KILL_PROJECTILE;
             world.scorePopupManager.spawn(hitEnemy.x, hitEnemy.y, SCORE_PER_KILL_PROJECTILE);
+            const typeId = hitEnemy.typeDef.id;
+            world.stats.killsByType[typeId] = (world.stats.killsByType[typeId] || 0) + 1;
           }
           return false;
         }

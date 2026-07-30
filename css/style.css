@@ -67,6 +67,33 @@ body {
   position: relative;
 }
 
+/* 게임 캔버스 + 상태창 캔버스를 묶는 영역 - 기본은 플레이 중 모습(둘을 확실히 구분).
+   타이틀/리더보드 열람 화면에서는 JS(render/statusPanel.js의 setMerged)가 여기에 merged
+   클래스를 붙여 여백/경계선을 없애고 하나의 화면처럼 보이게 한다. */
+#play-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#play-area.merged {
+  gap: 0;
+}
+#play-area.merged #game-canvas {
+  border-bottom: none;
+}
+#play-area.merged #status-canvas {
+  border-top: none;
+}
+
+/* 게임 캔버스 아래 별도의 하단 상태창 캔버스 - 그림은 render/statusPanel.js가 그린다 */
+#status-canvas {
+  display: block;
+  border: 2px solid #444;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
 /* 왼쪽: 이번 기록 + 이름 입력, 오른쪽: 기존 순위표 - 나란히 배치해서 한눈에 비교되게 한다 */
 #leaderboard-overlay {
   position: absolute;

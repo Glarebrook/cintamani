@@ -81,7 +81,9 @@ function projectileLayer(ctx, world) {
     const py = projectile.y * C;
     ctx.fillStyle = projectile.color;
     ctx.beginPath();
-    ctx.arc(px + size / 2, py + size / 2, size / 2, 0, Math.PI * 2);
+    // 원의 중심을 칸의 정중앙(px + C/2)에 맞춘다 - size(칸보다 작은 투사체 자체 지름)의 절반만
+    // 더하면 원이 칸의 좌상단 쪽으로 치우쳐 보인다(칸이 size보다 크므로).
+    ctx.arc(px + C / 2, py + C / 2, size / 2, 0, Math.PI * 2);
     ctx.fill();
   }
 }
@@ -123,6 +125,31 @@ function scorePopupLayer(ctx, world) {
   ctx.globalAlpha = 1;
 }
 
+// 비늘파동(states/playingState.js의 fireScaleWave) 발사 순간 범위를 하얗게 번쩍인다.
+// world.scaleWaveEffect가 없거나 만료됐으면 그냥 아무것도 안 그린다 - 별도로 지워줄 필요 없이
+// 시간이 지나면 자연히 안 그려진다.
+// 칸 하나하나를 따로 그리면(원이든 사각형이든) 몸 각 칸에서 개별적으로 번쩍이는 것처럼
+// 보인다 - 대신 영향받는 모든 칸의 사각형을 하나의 path에 모아 한 번에 fill()하고,
+// 그 위에 blur 필터를 씌워서 칸 사이 경계를 뭉갠다. 뱀 몸 전체를 감싸는 십자 범위들이
+// 서로 겹치므로, 블러를 거치면 뱀 형태를 따라 이어진 하나의 부드러운 덩어리로 보인다.
+// 뱀/적을 가리면 안 되므로 snakeLayer/enemyLayer보다 먼저 그려지도록 layers 배열
+// 순서를 그 앞으로 옮겨뒀다.
+function scaleWaveLayer(ctx, world) {
+  const effect = world.scaleWaveEffect;
+  if (!effect || performance.now() >= effect.expiresAt) return;
+  const C = CELL_SIZE;
+  ctx.save();
+  ctx.globalAlpha = 0.8;
+  ctx.filter = `blur(${C}px)`;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  for (const { x, y } of effect.cells) {
+    ctx.rect(x * C, y * C, C, C);
+  }
+  ctx.fill();
+  ctx.restore();
+}
+
 // 지금 화면이 실제로 최신 코드를 불러온 게 맞는지 눈으로 바로 확인할 수 있도록,
 // 우측 하단에 작게 빌드 표시를 띄운다.
 function versionLayer(ctx) {
@@ -136,6 +163,6 @@ function versionLayer(ctx) {
 }
 
 export const layers = [
-  backgroundLayer, captureZoneLayer, itemLayer, snakeLayer, projectileLayer, enemyLayer, particleLayer,
-  scorePopupLayer, versionLayer,
+  backgroundLayer, captureZoneLayer, itemLayer, scaleWaveLayer, snakeLayer, projectileLayer, enemyLayer,
+  particleLayer, scorePopupLayer, versionLayer,
 ];

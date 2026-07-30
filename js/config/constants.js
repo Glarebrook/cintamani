@@ -1,6 +1,7 @@
 export const CELL_SIZE = 8;      // 격자 1칸 = 8픽셀 (정사각형 보장)
 export const GRID_W   = 100;     // 필드 가로 격자 수
 export const GRID_H   = 40;      // 필드 세로 격자 수
+export const STATUS_PANEL_HEIGHT = 100; // 하단 상태창 캔버스 높이(px) - 너비는 게임 캔버스와 동일(GRID_W*CELL_SIZE)
 export const TICK_MS  = 120;     // 뱀 이동 간격 (ms)
 export const SNAKE_INITIAL_LENGTH = 3; // 기본 모드 시작 길이
 export const TEST_MODE_INITIAL_LENGTH = 40; // 테스트 모드 시작 길이
@@ -12,7 +13,8 @@ export const FOOD_BASE_GROWTH = 1; // 기본(초록) 먹이 1개당 성장 칸 �
 export const FOOD_SPEED_DELTA_MS = 5; // 노랑/갈색 먹이가 뱀 이동 간격(ms)을 바꾸는 양
 export const MIN_TICK_MS = 40; // 속도 먹이를 아무리 먹어도 이동 간격이 이 아래로는 안 내려감
 export const MAX_TICK_MS = 200; // 속도 먹이를 아무리 먹어도 이동 간격이 이 위로는 안 올라감
-export const ATTACK_UP_DELTA = 1; // 주황 먹이 1개당 투사체 공격력 증가량
+export const ATTACK_UP_DELTA = 1; // 주황 먹이 1개당 독침(투사체) 공격력 증가량
+export const ATTACK_UP_SCALE_WAVE_DELTA = 3; // 주황 먹이 1개당 비늘파동 공격력 증가량 - 독침(ATTACK_UP_DELTA)과 별도 수치
 export const ENEMY_SPAWN_MIN_MS = 3000; // 적 최소 생성 간격 (ms)
 export const ENEMY_SPAWN_MAX_MS = 7000; // 적 최대 생성 간격 (ms)
 export const ENEMY_MAX_COUNT = 3; // 화면에 동시에 존재할 수 있는 적의 최대 수
@@ -20,6 +22,16 @@ export const ENEMY_MIN_SPAWN_DISTANCE_FROM_HEAD = 8; // 적이 뱀 머리로부�
 export const PROJECTILE_SPEED = 48; // 투사체 이동 속도 (칸/초) - 원래 60에서 20% 감소
 export const PROJECTILE_DAMAGE = 1; // 투사체 공격력
 export const PROJECTILE_SIZE_RATIO = 0.4; // 뱀 도트 대비 투사체 크기 비율
+
+// 독침(투사체) 잠금 해제 + 비늘파동(충전형 광역 공격) - states/playingState.js 참고.
+export const VENOM_UNLOCK_LENGTH = 8; // 뱀 길이가 이번 판에서 처음 이 값에 도달하면 독침 발사 가능
+// 3번적(추격형) 처치 스택이 이 값에 도달하면 비늘파동 사용 가능 - 독침이 먼저 풀려있어야
+// 실제로 켜진다(스페이스바 동작 자체가 독침 위에 확장되는 형태라서).
+export const SCALE_WAVE_UNLOCK_CHASER_KILLS = 5;
+export const SCALE_WAVE_CHARGE_MS = 1000; // 스페이스바를 이만큼 누르고 있어야 완전 충전(게이지 색 변경)
+export const SCALE_WAVE_RANGE = 3; // 뱀 각 칸 기준 상/하/좌/우로 이 칸 수만큼 비늘파동이 닿음
+export const SCALE_WAVE_DAMAGE = 3; // 비늘파동 한 번에 범위 내 적에게 주는 데미지
+export const SCALE_WAVE_FLASH_MS = 150; // 비늘파동 발사 시 범위가 하얗게 번쩍이는 지속 시간(ms)
 export const ENEMY_BASE_HP = 5; // 적 기본 체력
 export const ENEMY_SCALE = 3; // 적 보이는 크기와 피격 판정의 공통 배율
 export const ENEMY_CAPTURE_ZONE_SCALE = 5; // 파란색 적의 포획 범위(회색 배경) 배율 - 적 외곽선 기준
@@ -89,4 +101,4 @@ export const LEADERBOARD_NAME_MAX_LENGTH = 200; // 서버 쪽 mb_substr 제한�
 
 // 화면 우측 하단에 표시되는 빌드 표시 — index.html의 캐시 무효화 ?v= 값과 항상 같이 올린다.
 // 코드를 바꿀 때마다 갱신해서, 새로고침한 화면이 실제로 최신 코드인지 눈으로 바로 확인할 수 있게 한다.
-export const BUILD_VERSION = '20260730-37';
+export const BUILD_VERSION = '20260730-46';

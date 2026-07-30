@@ -4,7 +4,7 @@ import { renderGameOverOverlay } from '../render/overlays.js';
 import { fetchLeaderboard, submitScore } from '../services/leaderboardApi.js';
 import { getTotalScore } from '../core/score.js';
 
-export function createGameOverState({ world, ctx, hud, panel, onRestart }) {
+export function createGameOverState({ world, ctx, hud, statusPanel, panel, onRestart }) {
   let survivalMs = 0;
   let scoreBreakdown = null;
   let lastEntries = [];
@@ -56,6 +56,9 @@ export function createGameOverState({ world, ctx, hud, panel, onRestart }) {
       phase = 'entry';
       survivalMs = payload?.survivalMs ?? 0;
       scoreBreakdown = payload?.scoreBreakdown ?? null;
+      // gameOver는 항상 playing 다음에만 오므로(title -> playing -> gameOver -> title) 이미
+      // false겠지만, 다른 상태에 이 값이 뭔지 의존하지 않고 각 상태가 스스로 보장하게 한다.
+      statusPanel.setMerged(false);
 
       // 테스트 모드(타이틀의 T)로 진행한 판은 공유 리더보드에 올리지 않는다 - 길이/속도를
       // 인위적으로 올려 시작한 판이라 정상 플레이 기록과 섞이면 순위표 의미가 없어진다.
@@ -91,6 +94,7 @@ export function createGameOverState({ world, ctx, hud, panel, onRestart }) {
         survivalSeconds: survivalMs / 1000,
         score: getTotalScore(world),
       });
+      statusPanel.render(world);
     },
   };
 }
