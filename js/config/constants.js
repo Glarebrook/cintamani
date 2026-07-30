@@ -1,7 +1,7 @@
 export const CELL_SIZE = 8;      // 격자 1칸 = 8픽셀 (정사각형 보장)
 export const GRID_W   = 100;     // 필드 가로 격자 수
 export const GRID_H   = 40;      // 필드 세로 격자 수
-export const STATUS_PANEL_HEIGHT = 100; // 하단 상태창 캔버스 높이(px) - 너비는 게임 캔버스와 동일(GRID_W*CELL_SIZE)
+export const STATUS_PANEL_HEIGHT = 80; // 하단 상태창 캔버스 높이(px) - 너비는 게임 캔버스와 동일(GRID_W*CELL_SIZE). 아이콘을 가로로 한 줄 배치로 바꾸면서 세로 여백이 남아 100에서 축소
 export const TICK_MS  = 120;     // 뱀 이동 간격 (ms)
 export const SNAKE_INITIAL_LENGTH = 3; // 기본 모드 시작 길이
 export const TEST_MODE_INITIAL_LENGTH = 40; // 테스트 모드 시작 길이
@@ -17,7 +17,13 @@ export const ATTACK_UP_DELTA = 1; // 주황 먹이 1개당 독침(투사체) 공
 export const ATTACK_UP_SCALE_WAVE_DELTA = 3; // 주황 먹이 1개당 비늘파동 공격력 증가량 - 독침(ATTACK_UP_DELTA)과 별도 수치
 export const ENEMY_SPAWN_MIN_MS = 3000; // 적 최소 생성 간격 (ms)
 export const ENEMY_SPAWN_MAX_MS = 7000; // 적 최대 생성 간격 (ms)
-export const ENEMY_MAX_COUNT = 3; // 화면에 동시에 존재할 수 있는 적의 최대 수
+// 필드에 이 수 이하로 있을 때는 생성 속도에 영향 없음 - 이 수를 "초과"하는 순간부터(4마리째부터)
+// 매 초과 마리당 생성 간격이 ENEMY_SPAWN_SLOWDOWN_FACTOR배씩 지수적으로 늘어난다. 예전에는
+// 이 수에 도달하면 생성 자체가 완전히 멈추는 하드 캡이었지만, 그러면 오래 버틴 판이 "적 없는
+// 무한 안전지대"가 돼버려서 - 생성을 막지 않고 대신 점점 드물어지게만 바꿨다(enemyManager.js
+// _randomSpawnDelay 참고).
+export const ENEMY_SPAWN_SLOWDOWN_THRESHOLD = 3;
+export const ENEMY_SPAWN_SLOWDOWN_FACTOR = 2; // 임계치 초과 1마리당 생성 간격 배율
 export const ENEMY_MIN_SPAWN_DISTANCE_FROM_HEAD = 8; // 적이 뱀 머리로부터 이 칸(체비셰프 거리) 이상 떨어진 곳에만 생성됨 - 너무 가까이 생성돼 반응할 틈 없이 죽는 것 방지
 export const PROJECTILE_SPEED = 48; // 투사체 이동 속도 (칸/초) - 원래 60에서 20% 감소
 export const PROJECTILE_DAMAGE = 1; // 투사체 공격력
@@ -110,4 +116,4 @@ export const LEADERBOARD_NAME_MAX_LENGTH = 200; // 서버 쪽 mb_substr 제한�
 
 // 화면 우측 하단에 표시되는 빌드 표시 — index.html의 캐시 무효화 ?v= 값과 항상 같이 올린다.
 // 코드를 바꿀 때마다 갱신해서, 새로고침한 화면이 실제로 최신 코드인지 눈으로 바로 확인할 수 있게 한다.
-export const BUILD_VERSION = '20260730-49';
+export const BUILD_VERSION = '20260730-53';

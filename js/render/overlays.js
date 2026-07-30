@@ -73,7 +73,8 @@ export function renderTutorialPopup(ctx, { icon, iconColor, title, lines }) {
   ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
   ctx.fillRect(0, 0, cw, ch);
 
-  const lineHeight = ch * 0.05;
+  const lineHeight = ch * 0.065; // 글씨가 너무 작다는 피드백으로 0.05에서 상향 - 이 값 하나로
+  // 아이콘/제목/본문/하단 안내 글씨와 박스 크기가 전부 같은 비율로 같이 커진다.
   const iconSize = lineHeight * 1.7;
   const iconBlockH = (icon || iconColor) ? iconSize + lineHeight * 0.5 : 0;
   const titleH = lineHeight * 1.3;

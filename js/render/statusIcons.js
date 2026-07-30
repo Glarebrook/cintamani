@@ -1,14 +1,16 @@
-// 하단 상태창(render/statusPanel.js)에서 쓰는 적 1~5 / 여의주(친타마니) 4종 아이콘, 그리고
-// 독침/비늘파동 잠금 해제 튜토리얼 팝업(render/overlays.js)에서 쓰는 무기 아이콘 로더.
+// 하단 상태창(render/statusPanel.js)에서 쓰는 적 1~5 / 여의주(친타마니) 4종 / 1열 스탯
+// (속도/길이) 아이콘, 그리고 독침/비늘파동 잠금 해제 튜토리얼 팝업(render/overlays.js)과
+// 1열 스탯 칸에서 같이 쓰는 무기 아이콘 로더.
 // render/snakeSprites.js와 같은 패턴: 실제 이미지 파일이 없는 항목은 조용히 미로딩 상태로
 // 남고, 호출부가 그 경우 색깔 도형으로 대체해서 그린다(assets/enemies/README.md,
-// assets/cintamani/README.md, assets/weapons/README.md에 사용자가 그려 넣을 파일명/규격을
-// 정리해둠).
+// assets/cintamani/README.md, assets/weapons/README.md, assets/stats/README.md에 사용자가
+// 그려 넣을 파일명/규격을 정리해둠).
 // 코드 상 식별자는 "여의주"의 음역(yeouiju)이 아니라 "cintamani"(여의주의 산스크리트/영문
 // 명칭, 이 게임 이름과 동일)를 쓴다 - 표기가 두 개로 갈리면 나중에 헷갈릴 수 있어서.
 const ENEMY_IDS = [1, 2, 3, 4, 5];
 const CINTAMANI_KEYS = ['red', 'blue', 'green', 'yellow'];
 const WEAPON_KEYS = ['venom', 'scaleWave'];
+const STAT_KEYS = ['speed', 'length'];
 
 // 그려지는 실제 픽셀(투명하지 않은 부분)의 바운딩 박스를 이미지 원본 좌표계로 구한다 - 사용자가
 // 그린 PNG가 64x64 캔버스 가장자리까지 꽉 채우지 않고 여백을 두면, 색깔 사각형/원 폴백과 같은
@@ -79,6 +81,7 @@ function createIconLoader(keys, pathFor) {
 const getEnemyIconImpl = createIconLoader(ENEMY_IDS, id => `assets/enemies/enemy${id}.png`);
 const getCintamaniIconImpl = createIconLoader(CINTAMANI_KEYS, key => `assets/cintamani/${key}.png`);
 const getWeaponIconImpl = createIconLoader(WEAPON_KEYS, key => `assets/weapons/${key}.png`);
+const getStatIconImpl = createIconLoader(STAT_KEYS, key => `assets/stats/${key}.png`);
 
 export function getEnemyIcon(id) {
   return getEnemyIconImpl(id);
@@ -88,10 +91,17 @@ export function getCintamaniIcon(key) {
   return getCintamaniIconImpl(key);
 }
 
-// 독침(venom)/비늘파동(scaleWave) 잠금 해제 튜토리얼 팝업에 쓰는 작은 무기 아이콘 -
-// assets/weapons/venom.png, assets/weapons/scaleWave.png (assets/weapons/README.md 참고).
+// 독침(venom)/비늘파동(scaleWave) 잠금 해제 튜토리얼 팝업 + 상태창 1열(획득 후)에 같이 쓰는
+// 작은 무기 아이콘 - assets/weapons/venom.png, assets/weapons/scaleWave.png
+// (assets/weapons/README.md 참고).
 export function getWeaponIcon(key) {
   return getWeaponIconImpl(key);
+}
+
+// 상태창 1열의 속도/길이 칸 아이콘 - assets/stats/speed.png, assets/stats/length.png
+// (assets/stats/README.md 참고).
+export function getStatIcon(key) {
+  return getStatIconImpl(key);
 }
 
 // get*Icon()이 돌려준 이미지를 대상 박스(dx,dy,dw,dh)에 꽉 채워 그린다 - 트림 정보가 있으면

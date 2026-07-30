@@ -1,5 +1,6 @@
 import {
-  GRID_W, GRID_H, CELL_SIZE, ENEMY_SCALE, ENEMY_SPAWN_MIN_MS, ENEMY_SPAWN_MAX_MS, ENEMY_MAX_COUNT,
+  GRID_W, GRID_H, CELL_SIZE, ENEMY_SCALE, ENEMY_SPAWN_MIN_MS, ENEMY_SPAWN_MAX_MS,
+  ENEMY_SPAWN_SLOWDOWN_THRESHOLD, ENEMY_SPAWN_SLOWDOWN_FACTOR,
   ENEMY_MIN_SPAWN_DISTANCE_FROM_HEAD, CAPTURE_ZONE_MIN_SPAWN_DISTANCE,
 } from '../config/constants.js';
 import { EnemyTypes } from '../content/enemies/index.js';
@@ -29,8 +30,10 @@ export class EnemyManager {
     this.spawnTimer += dt;
     if (this.spawnTimer >= this.nextSpawnDelay) {
       this.spawnTimer = 0;
-      this.nextSpawnDelay = this._randomSpawnDelay();
       this._trySpawn(world);
+      // _trySpawn 이후에 계산해야 방금 스폰(또는 스폰 실패)이 반영된 최신 마리 수 기준으로
+      // 다음 간격의 지수 배율(_randomSpawnDelay 참고)이 정해진다.
+      this.nextSpawnDelay = this._randomSpawnDelay();
     }
   }
 
@@ -86,8 +89,14 @@ export class EnemyManager {
     }
   }
 
+  // 필드에 ENEMY_SPAWN_SLOWDOWN_THRESHOLD(3)마리를 초과해 있으면, 초과한 마리 수만큼
+  // ENEMY_SPAWN_SLOWDOWN_FACTOR(2)를 거듭제곱해 기본 간격을 늘린다 - 4마리째부터 매 한 마리씩
+  // 늘어날 때마다 다음 생성까지 갈수록 오래 걸리지만, 생성 자체가 완전히 멈추지는 않는다
+  // (예전엔 이 수를 넘으면 생성이 아예 멈추는 하드 캡이었음 - _trySpawn 참고).
   _randomSpawnDelay() {
-    return ENEMY_SPAWN_MIN_MS + Math.floor(Math.random() * (ENEMY_SPAWN_MAX_MS - ENEMY_SPAWN_MIN_MS + 1));
+    const base = ENEMY_SPAWN_MIN_MS + Math.floor(Math.random() * (ENEMY_SPAWN_MAX_MS - ENEMY_SPAWN_MIN_MS + 1));
+    const over = Math.max(0, this.enemies.length - ENEMY_SPAWN_SLOWDOWN_THRESHOLD);
+    return base * (ENEMY_SPAWN_SLOWDOWN_FACTOR ** over);
   }
 
   _createEnemy(typeDef, x, y) {
@@ -120,8 +129,9 @@ export class EnemyManager {
   // captureZone을 가진 타입은 가장자리 여백이 필요해서, 어떤 타입이 나올지 미리 알아야
   // 후보 칸 범위를 좁힐 수 있다.
   _trySpawn(world) {
-    if (this.enemies.length >= ENEMY_MAX_COUNT) return;
-
+    // 마리 수로 스폰 자체를 막는 하드 캡은 없다 - 대신 마리 수가 많을수록 다음 스폰까지의
+    // 간격이 지수적으로 늘어난다(_randomSpawnDelay 참고), 그래서 무제한으로 계속 나오되
+    // 점점 드물어진다.
     const eligibleTypes = EnemyTypes.all().filter(def => !def.spawnEligible || def.spawnEligible(world));
     if (eligibleTypes.length === 0) return;
     const typeDef = eligibleTypes[Math.floor(Math.random() * eligibleTypes.length)];

@@ -1,14 +1,19 @@
-// 게임 캔버스 아래 별도의 캔버스(#status-canvas)에 그리는 하단 상태창 - 가로 4열:
-// 1열 뱀 기본 스테이터스(속도/길이/독침 데미지), 2열 적1~5 이번 판 킬 스택(이미지+수치),
-// 3열 여의주(cintamani) 4종 2x2(이미지+개수, 아직 게임에 없는 개념이라 항상 0), 4열은 향후
-// 확장을 위해 지금은 비워둠. hud.js(DOM 통계 바)와 같은 "게임 캔버스와는 분리된 자기만의
-// 캔버스" 패턴. 코드 상 식별자는 "여의주"의 음역(yeouiju)이 아니라 "cintamani"(여의주의
-// 산스크리트/영문 명칭, 이 게임 이름과 동일)를 쓴다 - 표기가 두 개로 갈리면 나중에 헷갈릴 수
-// 있어서 게임 제목과 통일했다.
+// 게임 캔버스 아래 별도의 캔버스(#status-canvas)에 그리는 하단 상태창 - 가로 4열, 각 열
+// 상단에 제목(STATUS/KILL STACK/CINTAMANI)을 붙인다:
+// 1열 STATUS - 뱀 기본 스테이터스, 2열 KILL STACK - 적1~5 이번 판 킬 스택(이미지+수치),
+// 3열 CINTAMANI - 여의주 4종 1x4 한 줄 배치(이미지+개수, 아직 게임에 없는 개념이라 항상 0),
+// 4열은 제목 없이 향후 확장을 위해 지금은 비워둠. hud.js(DOM 통계 바)와 같은 "게임 캔버스와는
+// 분리된 자기만의 캔버스" 패턴. 코드 상 식별자는 "여의주"의 음역(yeouiju)이 아니라
+// "cintamani"(여의주의 산스크리트/영문 명칭, 이 게임 이름과 동일)를 쓴다 - 표기가 두 개로
+// 갈리면 나중에 헷갈릴 수 있어서 게임 제목과 통일했다.
+// 1열은 2/3열과 같은 "아이콘 위 + 수치 아래" 스타일로 통일돼 있다 - 속도/길이는 항상 표시,
+// 독침/비늘파동 데미지는 각각 world.stats.venomUnlocked/scaleWaveUnlocked가 켜진 뒤에만
+// (그 무기를 실제로 획득한 뒤에만) 칸이 나타난다 - 칸 개수가 2~4개로 판 진행에 따라 늘어나므로
+// slotWidth를 항상 items.length 기준으로 다시 계산한다(2열의 적 종류 수 기준 계산과 같은 패턴).
 import { GRID_W, CELL_SIZE, STATUS_PANEL_HEIGHT } from '../config/constants.js';
 import { getDisplaySpeedLevel } from '../core/speedLevel.js';
 import { EnemyTypes } from '../content/enemies/index.js';
-import { getEnemyIcon, getCintamaniIcon, drawIcon } from './statusIcons.js';
+import { getEnemyIcon, getCintamaniIcon, getWeaponIcon, getStatIcon, drawIcon } from './statusIcons.js';
 
 const BG_COLOR = '#d9b98a';                 // 밝은 가죽색
 const PATTERN_COLOR = 'rgba(92, 67, 38, 0.28)'; // 배경의 짙은 갈색 가는 선(가죽 질감)
@@ -22,6 +27,27 @@ const CINTAMANI_COLOR = {
   green: '#2f8f4e',
   yellow: '#d4a017',
 };
+
+// 1열 스탯 칸의 이미지 없을 때 폴백 원 색 - 독침/비늘파동은 각 무기 튜토리얼 팝업에서 이미
+// 쓰던 상징색(overlays.js 참고)을 그대로 맞춘다.
+const STAT_FALLBACK_COLOR = {
+  speed: '#3fa7d6',
+  length: '#4caf7d',
+  venomDamage: '#f5d742',
+  scaleWaveDamage: '#ffffff',
+};
+
+// 1~3열 상단에 공통으로 붙는 제목 - 이 높이만큼 각 열의 실제 통계 내용물이 아래로 밀린다
+// (4열은 아직 내용이 없어 제목도 없음).
+const COLUMN_TITLE_HEIGHT = 18;
+
+function drawColumnTitle(ctx, text, x, columnWidth) {
+  ctx.fillStyle = TEXT_COLOR;
+  ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x + columnWidth / 2, COLUMN_TITLE_HEIGHT / 2 + 2);
+}
 
 function drawBackground(ctx, w, h) {
   ctx.fillStyle = BG_COLOR;
@@ -65,32 +91,47 @@ function drawIconOrFallback(ctx, icon, cx, cy, radius, fallbackColor) {
   ctx.fill();
 }
 
-// 1열 - 뱀 기본 스테이터스: 속도/길이/독침(투사체) 데미지.
-function drawSnakeStatsColumn(ctx, world, x, columnWidth, h) {
-  const cx = x + columnWidth / 2;
-  const rows = [
-    `속도 ${getDisplaySpeedLevel(world.stats.tickMs)}`,
-    `길이 ${world.snake.segments.length}`,
-    `독침 데미지 ${world.stats.attackDamage}`,
+// 1열 - 뱀 기본 스테이터스, 2/3열과 같은 아이콘-위/수치-아래 스타일. contentTop/contentH는
+// 열 제목(COLUMN_TITLE_HEIGHT)이 차지하는 만큼을 뺀, 실제 내용이 그려지는 영역이다.
+// 속도/길이는 항상 표시하고, 독침/비늘파동 데미지는 각 무기를 실제로 획득(unlocked)한 뒤에만
+// 칸이 추가된다 - 아직 못 배운 무기의 수치를 미리 보여주는 건 스포일러라 숨긴다.
+function drawSnakeStatsColumn(ctx, world, x, columnWidth, contentTop, contentH) {
+  const items = [
+    { icon: getStatIcon('speed'), fallback: STAT_FALLBACK_COLOR.speed, value: getDisplaySpeedLevel(world.stats.tickMs) },
+    { icon: getStatIcon('length'), fallback: STAT_FALLBACK_COLOR.length, value: world.snake.segments.length },
   ];
-  ctx.fillStyle = TEXT_COLOR;
-  ctx.font = 'bold 12px monospace';
+  if (world.stats.venomUnlocked) {
+    items.push({ icon: getWeaponIcon('venom'), fallback: STAT_FALLBACK_COLOR.venomDamage, value: world.stats.attackDamage });
+  }
+  if (world.stats.scaleWaveUnlocked) {
+    items.push({ icon: getWeaponIcon('scaleWave'), fallback: STAT_FALLBACK_COLOR.scaleWaveDamage, value: world.stats.scaleWaveDamage });
+  }
+
+  const slotWidth = columnWidth / items.length;
+  const iconRadius = 12;
+  const iconCy = contentTop + contentH * 0.36;
+  const textCy = contentTop + contentH * 0.74;
+
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  const rowHeight = h / rows.length;
-  rows.forEach((text, i) => {
-    ctx.fillText(text, cx, rowHeight * i + rowHeight / 2);
+  items.forEach((item, i) => {
+    const slotCx = x + slotWidth * i + slotWidth / 2;
+    drawIconOrFallback(ctx, item.icon, slotCx, iconCy, iconRadius, item.fallback);
+
+    ctx.fillStyle = TEXT_COLOR;
+    ctx.font = 'bold 11px monospace';
+    ctx.fillText(String(item.value), slotCx, textCy);
   });
 }
 
 // 2열 - 적1~5 이번 판 킬 스택. world.stats.killsByType는 판마다 리셋되는 이번 판 전적이다
 // (game.js의 world.reset() 참고) - 여러 판에 걸친 영구 누적은 지금은 하지 않는다.
-function drawEnemyKillsColumn(ctx, world, x, columnWidth, h) {
+function drawEnemyKillsColumn(ctx, world, x, columnWidth, contentTop, contentH) {
   const ids = EnemyTypes.all().map(def => def.id).sort((a, b) => a - b);
   const slotWidth = columnWidth / ids.length;
   const iconRadius = 12;
-  const iconCy = h * 0.36;
-  const textCy = h * 0.74;
+  const iconCy = contentTop + contentH * 0.36;
+  const textCy = contentTop + contentH * 0.74;
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -107,28 +148,26 @@ function drawEnemyKillsColumn(ctx, world, x, columnWidth, h) {
   }
 }
 
-// 3열 - 여의주(cintamani) 4종, 2x2 배치. world.stats.cintamani는 아직 게임에 없는 개념이라
-// 항상 0 - 자리만 미리 잡아둔 것(game.js 참고).
-function drawCintamaniColumn(ctx, world, x, columnWidth, h) {
-  const cellW = columnWidth / 2;
-  const cellH = h / 2;
+// 3열 - 여의주(cintamani) 4종, 1x4 한 줄 배치(2열 킬 스택 열과 같은 아이콘-위/수치-아래
+// 스타일로 통일). world.stats.cintamani는 아직 게임에 없는 개념이라 항상 0 - 자리만 미리
+// 잡아둔 것(game.js 참고).
+function drawCintamaniColumn(ctx, world, x, columnWidth, contentTop, contentH) {
+  const slotWidth = columnWidth / CINTAMANI_ORDER.length;
   const iconRadius = 12;
+  const iconCy = contentTop + contentH * 0.36;
+  const textCy = contentTop + contentH * 0.74;
 
+  ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   for (let i = 0; i < CINTAMANI_ORDER.length; i++) {
     const key = CINTAMANI_ORDER[i];
-    const col = i % 2;
-    const row = Math.floor(i / 2);
-    const cellCx = x + cellW * col + cellW / 2;
-    const cellCy = cellH * row + cellH / 2;
-    const iconCx = cellCx - 18;
+    const slotCx = x + slotWidth * i + slotWidth / 2;
 
-    drawIconOrFallback(ctx, getCintamaniIcon(key), iconCx, cellCy, iconRadius, CINTAMANI_COLOR[key]);
+    drawIconOrFallback(ctx, getCintamaniIcon(key), slotCx, iconCy, iconRadius, CINTAMANI_COLOR[key]);
 
     ctx.fillStyle = TEXT_COLOR;
-    ctx.font = 'bold 12px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText(`×${world.stats.cintamani[key]}`, iconCx + iconRadius + 6, cellCy);
+    ctx.font = 'bold 11px monospace';
+    ctx.fillText(`×${world.stats.cintamani[key]}`, slotCx, textCy);
   }
 }
 
@@ -148,10 +187,15 @@ export function createStatusPanel() {
   return {
     render(world) {
       drawBackground(ctx, w, h);
-      drawSnakeStatsColumn(ctx, world, 0, columnWidth, h);
-      drawEnemyKillsColumn(ctx, world, columnWidth, columnWidth, h);
-      drawCintamaniColumn(ctx, world, columnWidth * 2, columnWidth, h);
-      // 4열(x = columnWidth*3 ~ columnWidth*4)은 지금은 배경만 두고 비워둔다 - 향후 확장 예정.
+      const contentTop = COLUMN_TITLE_HEIGHT;
+      const contentH = h - COLUMN_TITLE_HEIGHT;
+      drawColumnTitle(ctx, 'STATUS', 0, columnWidth);
+      drawColumnTitle(ctx, 'KILL STACK', columnWidth, columnWidth);
+      drawColumnTitle(ctx, 'CINTAMANI', columnWidth * 2, columnWidth);
+      drawSnakeStatsColumn(ctx, world, 0, columnWidth, contentTop, contentH);
+      drawEnemyKillsColumn(ctx, world, columnWidth, columnWidth, contentTop, contentH);
+      drawCintamaniColumn(ctx, world, columnWidth * 2, columnWidth, contentTop, contentH);
+      // 4열(x = columnWidth*3 ~ columnWidth*4)은 제목 없이 배경만 두고 비워둔다 - 향후 확장 예정.
       drawColumnDividers(ctx, w, h, columnWidth);
     },
     // 타이틀/리더보드 열람 화면(아직 world 통계가 의미 없는 상태)에서 게임 캔버스의 배경과
