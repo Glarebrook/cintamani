@@ -45,6 +45,7 @@ export const turretEnemy = {
       damage: 0,
       color: '#7ecbff',
       owner: 'enemy',
+      sourceId: enemy.id,
       onBodyHit: w => w.snake.shrink(TURRET_PROJECTILE_SHRINK),
     }));
     return true;

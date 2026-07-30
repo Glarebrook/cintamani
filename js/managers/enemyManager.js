@@ -1,6 +1,6 @@
 import {
   GRID_W, GRID_H, CELL_SIZE, ENEMY_SCALE, ENEMY_SPAWN_MIN_MS, ENEMY_SPAWN_MAX_MS, ENEMY_MAX_COUNT,
-  ENEMY_MIN_SPAWN_DISTANCE_FROM_HEAD,
+  ENEMY_MIN_SPAWN_DISTANCE_FROM_HEAD, CAPTURE_ZONE_MIN_SPAWN_DISTANCE,
 } from '../config/constants.js';
 import { EnemyTypes } from '../content/enemies/index.js';
 // 하단 상태창(render/statusPanel.js)의 적 킬 스택 아이콘과 같은 이미지/폴백 규칙을 필드에
@@ -135,6 +135,13 @@ export class EnemyManager {
       ? Math.floor((ENEMY_SCALE * typeDef.captureZone.scale - 1) / 2)
       : 0;
 
+    // captureZone 타입끼리 너무 붙어서 나오면(예: 4번적 둘이 딱 붙음), 한쪽만 따로 감싸는 게
+    // 불가능해지는 문제가 실제로 보고됐다 - 이미 존재하는 다른 captureZone 적들의 위치를
+    // 미리 뽑아둔다(이번에 뽑힌 typeDef가 captureZone일 때만 의미가 있음).
+    const captureZoneNeighbors = typeDef.captureZone
+      ? this.enemies.filter(enemy => enemy.typeDef.captureZone)
+      : [];
+
     const snake = world.snake;
     const head = snake.head;
     const candidates = [];
@@ -145,7 +152,10 @@ export class EnemyManager {
         // 뱀 머리와 너무 가까운 칸은 후보에서 제외 - 반응할 틈도 없이 바로 충돌해 죽는 것 방지.
         // 다른 정사각형 범위 판정(포획존, 추격 감지범위 등)과 같은 체비셰프 거리 방식.
         const tooCloseToHead = Math.max(Math.abs(x - head.x), Math.abs(y - head.y)) < ENEMY_MIN_SPAWN_DISTANCE_FROM_HEAD;
-        if (!occupiedBySnake && !occupiedByEnemy && !tooCloseToHead) {
+        const tooCloseToOtherCaptureZone = captureZoneNeighbors.some(
+          other => Math.max(Math.abs(x - other.x), Math.abs(y - other.y)) < CAPTURE_ZONE_MIN_SPAWN_DISTANCE
+        );
+        if (!occupiedBySnake && !occupiedByEnemy && !tooCloseToHead && !tooCloseToOtherCaptureZone) {
           candidates.push({ x, y });
         }
       }

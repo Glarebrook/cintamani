@@ -1,7 +1,26 @@
 import {
   GRID_W, GRID_H, ENEMY_SCALE, PARTICLE_BURST_COUNT, PARTICLE_SPEED, PARTICLE_LIFE_MS, SCORE_PER_KILL_PROJECTILE,
+  ENEMY_PROJECTILE_FRIENDLY_FIRE_DAMAGE,
 } from '../config/constants.js';
 import { updateProjectile } from '../entities/projectile.js';
+
+// 투사체로 적을 죽였을 때 항상 같이 붙는 처리(제거/onDefeated/파티클/점수/팝업/킬 스택 증가) -
+// 플레이어 발사체 처치와, 적 발사체(터렛/헌터)의 아군 오사 처치 두 곳에서 공통으로 쓴다.
+// states/playingState.js의 grantKillReward와 같은 이유로 추출(같은 번들이 이 파일 안에서만
+// 두 번째로 나올 시점이라 이번엔 모듈 경계를 넘지 않고 여기 안에서 바로 추출).
+function killEnemyViaProjectile(world, enemyManager, index) {
+  const enemy = enemyManager.enemies[index];
+  enemyManager.enemies.splice(index, 1);
+  enemy.typeDef.onDefeated?.(world, enemy);
+  world.particleManager.spawnBurst({
+    x: enemy.x, y: enemy.y, color: enemy.typeDef.color,
+    count: PARTICLE_BURST_COUNT, speed: PARTICLE_SPEED, life: PARTICLE_LIFE_MS,
+  });
+  world.stats.killScore += SCORE_PER_KILL_PROJECTILE;
+  world.scorePopupManager.spawn(enemy.x, enemy.y, SCORE_PER_KILL_PROJECTILE);
+  const typeId = enemy.typeDef.id;
+  world.stats.killsByType[typeId] = (world.stats.killsByType[typeId] || 0) + 1;
+}
 
 export function createProjectileManager() {
   let projectiles = [];
@@ -34,9 +53,10 @@ export function createProjectileManager() {
         const cellY = Math.round(projectile.y);
 
         if (projectile.owner === 'enemy') {
-          // 적 발사체: 적과는 상호작용하지 않고 오직 뱀만 본다. 머리 피격은 항상 즉사(headHit)로
-          // 고정이지만, 몸 피격 시 효과는 쏜 쪽(turret.js/hunter.js 등)마다 다를 수 있어서
-          // onBodyHit/onHeadHit 콜백으로 위임한다 — 여기서 어떤 타입인지 특별 취급하지 않는다.
+          // 적 발사체: 뱀에 대해서는 여기서 직접 판정하고(머리=즉사, 몸=onBodyHit 위임 -
+          // 쏜 쪽마다 효과가 다르므로 타입 특별 취급 없이 콜백으로 넘김), 다른 적에 대해서는
+          // 아래에서 플레이어 발사체와 똑같이 고정 데미지(ENEMY_PROJECTILE_FRIENDLY_FIRE_DAMAGE)를
+          // 입힌다 - 터렛/헌터 어느 쪽이 쐈든 같은 규칙(여기서도 타입 특별 취급 없음).
           if (cellX === snake.head.x && cellY === snake.head.y) {
             projectile.onHeadHit?.(world);
             headHit = true;
@@ -45,6 +65,22 @@ export function createProjectileManager() {
           const hitsBody = snake.segments.slice(1).some(s => s.x === cellX && s.y === cellY);
           if (hitsBody) {
             projectile.onBodyHit?.(world);
+            return false;
+          }
+
+          // 쏜 적 자신은 제외한다(sourceId) - 발사 지점이 자기 좌표와 겹쳐서 쏘자마자
+          // 스스로 맞은 것으로 오판정되는 것을 막기 위함.
+          const friendlyFireIndex = enemyManager.enemies.findIndex(enemy => {
+            if (enemy.id === projectile.sourceId) return false;
+            const dx = enemy.x - projectile.x;
+            const dy = enemy.y - projectile.y;
+            const hitRadius = ENEMY_SCALE * 0.5;
+            return dx * dx + dy * dy <= hitRadius * hitRadius;
+          });
+          if (friendlyFireIndex >= 0) {
+            const hitEnemy = enemyManager.enemies[friendlyFireIndex];
+            const shouldRemove = enemyManager.applyProjectileHit(hitEnemy, ENEMY_PROJECTILE_FRIENDLY_FIRE_DAMAGE);
+            if (shouldRemove) killEnemyViaProjectile(world, enemyManager, friendlyFireIndex);
             return false;
           }
           return true;
@@ -64,18 +100,7 @@ export function createProjectileManager() {
         if (hitIndex >= 0) {
           const hitEnemy = enemyManager.enemies[hitIndex];
           const shouldRemove = enemyManager.applyProjectileHit(hitEnemy, projectile.damage);
-          if (shouldRemove) {
-            enemyManager.enemies.splice(hitIndex, 1);
-            hitEnemy.typeDef.onDefeated?.(world, hitEnemy);
-            world.particleManager.spawnBurst({
-              x: hitEnemy.x, y: hitEnemy.y, color: hitEnemy.typeDef.color,
-              count: PARTICLE_BURST_COUNT, speed: PARTICLE_SPEED, life: PARTICLE_LIFE_MS,
-            });
-            world.stats.killScore += SCORE_PER_KILL_PROJECTILE;
-            world.scorePopupManager.spawn(hitEnemy.x, hitEnemy.y, SCORE_PER_KILL_PROJECTILE);
-            const typeId = hitEnemy.typeDef.id;
-            world.stats.killsByType[typeId] = (world.stats.killsByType[typeId] || 0) + 1;
-          }
+          if (shouldRemove) killEnemyViaProjectile(world, enemyManager, hitIndex);
           return false;
         }
 

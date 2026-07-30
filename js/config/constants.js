@@ -22,6 +22,10 @@ export const ENEMY_MIN_SPAWN_DISTANCE_FROM_HEAD = 8; // 적이 뱀 머리로부�
 export const PROJECTILE_SPEED = 48; // 투사체 이동 속도 (칸/초) - 원래 60에서 20% 감소
 export const PROJECTILE_DAMAGE = 1; // 투사체 공격력
 export const PROJECTILE_SIZE_RATIO = 0.4; // 뱀 도트 대비 투사체 크기 비율
+// owner:'enemy' 발사체(터렛/헌터)가 뱀이 아니라 다른 적(투사체 데미지가 통하는 1/3/5번 등)에
+// 닿았을 때 입히는 고정 데미지 - 쏜 적 타입과 무관하게 항상 이 값. 터렛/헌터가 서로 다른
+// damage(둘 다 0 - 뱀에게는 shrink 등 별도 효과로 작용)를 쓰는 것과는 별개 수치라 따로 뺐다.
+export const ENEMY_PROJECTILE_FRIENDLY_FIRE_DAMAGE = 1;
 
 // 독침(투사체) 잠금 해제 + 비늘파동(충전형 광역 공격) - states/playingState.js 참고.
 export const VENOM_UNLOCK_LENGTH = 8; // 뱀 길이가 이번 판에서 처음 이 값에 도달하면 독침 발사 가능
@@ -35,6 +39,11 @@ export const SCALE_WAVE_FLASH_MS = 150; // 비늘파동 발사 시 범위가 하
 export const ENEMY_BASE_HP = 5; // 적 기본 체력
 export const ENEMY_SCALE = 3; // 적 보이는 크기와 피격 판정의 공통 배율
 export const ENEMY_CAPTURE_ZONE_SCALE = 5; // 파란색 적의 포획 범위(회색 배경) 배율 - 적 외곽선 기준
+// captureZone을 가진 적(2번 sentinel/4번 turret) 두 마리가 서로 이 거리(체비셰프) 미만으로
+// 붙어서 스폰되는 걸 막는다 - 포획존 정사각형의 한 변 길이(ENEMY_SCALE * ENEMY_CAPTURE_ZONE_SCALE)와
+// 같게 잡아서, 두 적의 포획존이 서로 닿거나 겹치지 않게 한다. 실제로 4번적끼리 딱 붙어서 나오면
+// 어느 한쪽만 따로 감싸는 게 위상적으로 불가능해지는 문제가 보고돼서 추가됨.
+export const CAPTURE_ZONE_MIN_SPAWN_DISTANCE = ENEMY_SCALE * ENEMY_CAPTURE_ZONE_SCALE;
 export const LONG_SNAKE_UNLOCK_LENGTH = 20; // 뱀 길이가 이 이상이어야 스폰 가능한 적들의 공통 기준 (2번/4번적)
 
 // 처치/포획 보상으로 나오는 먹이 조건 — 어떤 적 번호가 이 보상을 트리거하는지는 종종 재배정되므로
@@ -101,4 +110,4 @@ export const LEADERBOARD_NAME_MAX_LENGTH = 200; // 서버 쪽 mb_substr 제한�
 
 // 화면 우측 하단에 표시되는 빌드 표시 — index.html의 캐시 무효화 ?v= 값과 항상 같이 올린다.
 // 코드를 바꿀 때마다 갱신해서, 새로고침한 화면이 실제로 최신 코드인지 눈으로 바로 확인할 수 있게 한다.
-export const BUILD_VERSION = '20260730-46';
+export const BUILD_VERSION = '20260730-48';

@@ -156,6 +156,10 @@ export function createPlayingState({ world, hud, ctx, statusPanel }) {
     e.preventDefault();
     if (paused || !world.stats.venomUnlocked) return;
     if (!world.stats.scaleWaveUnlocked) {
+      // 키를 누르고 있으면 OS가 keydown을 계속 자동반복해서 보낸다(e.repeat: true) - 여기서
+      // 걸러내지 않으면 스페이스바를 누르고 있는 동안 독침이 연사돼버린다(실제 신고된 문제).
+      // 처음 눌린 순간(e.repeat이 false/undefined)에만 한 발 나가고, 다시 쏘려면 떼었다 눌러야 한다.
+      if (e.repeat) return;
       fire();
       return;
     }

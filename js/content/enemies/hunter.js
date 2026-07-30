@@ -76,6 +76,7 @@ export const hunterEnemy = {
       damage: 0,
       color: '#ff5fb0',
       owner: 'enemy',
+      sourceId: enemy.id,
       onBodyHit(w) {
         w.snake.shrink(FOOD_BASE_GROWTH);
         w.stats.tickMs = Math.min(MAX_TICK_MS, w.stats.tickMs + FOOD_SPEED_DELTA_MS);
