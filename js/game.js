@@ -10,6 +10,7 @@ import { createStateMachine } from './core/stateMachine.js';
 import { createGameLoop } from './core/loop.js';
 import { createStatusPanel } from './render/statusPanel.js';
 import { createLeaderboardPanel } from './render/leaderboardPanel.js';
+import { createPatchNotesPanel } from './render/patchNotesPanel.js';
 import { Snake } from './entities/snake.js';
 import { EnemyManager } from './managers/enemyManager.js';
 import { ItemManager } from './managers/itemManager.js';
@@ -138,6 +139,8 @@ export function createGame(canvas) {
   // gameOverState와 leaderboardViewState가 같이 쓰는 단일 패널 - DOM 엘리먼트가 하나뿐이라
   // 두 번 만들면 submit/click 리스너가 중복 등록된다(statusPanel과 같은 "한 번만 생성" 패턴).
   const leaderboardPanel = createLeaderboardPanel();
+  // 타이틀 화면 전용 - 다른 상태는 이 패널을 쓰지 않는다.
+  const patchNotesPanel = createPatchNotesPanel();
 
   function startGame(options) {
     world.reset(options);
@@ -154,7 +157,7 @@ export function createGame(canvas) {
 
   const playingState = createPlayingState({ world, ctx, statusPanel });
   const gameOverState = createGameOverState({ world, ctx, statusPanel, panel: leaderboardPanel, onRestart: goToTitle });
-  const titleState = createTitleState({ ctx, statusPanel, onStart: startGame, onViewLeaderboard: viewLeaderboard });
+  const titleState = createTitleState({ ctx, statusPanel, patchNotesPanel, onStart: startGame, onViewLeaderboard: viewLeaderboard });
   const leaderboardViewState = createLeaderboardViewState({ ctx, statusPanel, panel: leaderboardPanel, onBack: goToTitle });
 
   const stateMachine = createStateMachine(

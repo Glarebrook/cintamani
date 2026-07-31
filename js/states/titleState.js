@@ -6,7 +6,7 @@ import { setTouchActionButtons } from '../input/touchControls.js';
 // world가 아직 시작 전인 화면 — Enter(기본 모드)/T(테스트 모드)로 시작하거나, L로 플레이 없이
 // 순위표만 열람할 수 있다. onStart({ testMode })를 호출해 game.js가 어떤 모드로
 // world.reset()할지 알려주고, onViewLeaderboard()는 별도로 leaderboardView 상태로 보낸다.
-export function createTitleState({ ctx, statusPanel, onStart, onViewLeaderboard }) {
+export function createTitleState({ ctx, statusPanel, patchNotesPanel, onStart, onViewLeaderboard }) {
   // 대기(타이틀) 화면에 머무는 동안만 새 버전 여부를 주기적으로 체크해서, 있으면 자동
   // 새로고침한다(core/updateCheck.js 참고) - 플레이 중에는 절대 새로고침되면 안 되므로
   // enter/exit에서 다른 키 바인딩과 같은 방식으로 시작/중지한다.
@@ -23,12 +23,15 @@ export function createTitleState({ ctx, statusPanel, onStart, onViewLeaderboard 
       updateChecker.start();
       // 모바일 터치 오버레이 - 타이틀에서는 T/L/ENTER만 의미가 있다(js/input/touchControls.js).
       setTouchActionButtons(['touch-t', 'touch-l', 'touch-enter']);
+      // 패치노트 패널 - 타이틀 화면에서만 보이는 DOM 오버레이(render/patchNotesPanel.js).
+      patchNotesPanel.show();
     },
     exit() {
       Actions.unbind('Enter');
       Actions.unbind('t');
       Actions.unbind('l');
       updateChecker.stop();
+      patchNotesPanel.hide();
     },
 
     onFrame() {},

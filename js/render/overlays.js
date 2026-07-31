@@ -1,7 +1,6 @@
 import { drawIcon } from './statusIcons.js';
 import { versionLayer } from './layers.js';
 import { toScreenX, toScreenY, screenCellSize, getViewportPixelSize } from '../core/gridMath.js';
-import { STATUS_PANEL_WIDTH } from '../config/constants.js';
 
 // 타이틀/일시정지/게임오버 등 화면 전체를 채우는 오버레이들은 필드 전체 크기(GRID_W*CELL_SIZE)가
 // 아니라 뷰포트(실제 캔버스) 픽셀 크기를 써야 한다 - 필드가 카메라 뷰포트보다 커지면 이 둘이
@@ -17,25 +16,31 @@ export function renderTitleScreen(ctx) {
 
   // 타이틀 화면에서는 statusPanel.setMerged(true)로 좌측 상태창 캔버스와 이 게임 캔버스가
   // 경계 없이 이어져 하나의 넓은 화면처럼 보인다(states/titleState.js 참고) - 하지만 이
-  // ctx는 여전히 게임 캔버스(오른쪽 부분, 너비 cw)만의 좌표계라, cw/2로 그리면 텍스트가
-  // "합쳐진 전체 화면"이 아니라 "게임 캔버스만의 중앙"(왼쪽 상태창 폭만큼 오른쪽으로
-  // 치우친 위치)에 그려진다. 합쳐진 전체 폭(STATUS_PANEL_WIDTH + cw)의 중앙이 이 게임
-  // 캔버스 좌표계에서 어디에 해당하는지 역산한 값이 centerX다.
-  const centerX = (cw - STATUS_PANEL_WIDTH) / 2;
+  // ctx는 여전히 게임 캔버스(오른쪽 부분, 너비 cw)만의 좌표계라, 상태창 캔버스 쪽 픽셀에는
+  // 직접 그릴 수 없다(별개의 캔버스 엘리먼트). 그래서 로고/메뉴는 이 게임 캔버스 자체의
+  // 왼쪽으로 최대한 붙이고(logoX), 남는 오른쪽 공간은 render/patchNotesPanel.js의 DOM
+  // 오버레이(스크롤 가능한 패치노트 목록)가 차지한다 - 캔버스가 아니라 DOM인 이유는
+  // 리더보드 이름 입력과 같은 이유(진짜 스크롤 동작이 필요한 UI는 캔버스로 직접 구현하기
+  // 번거로움).
+  const titleFontSize = Math.floor(ch * 0.12);
+  ctx.font = `bold ${titleFontSize}px CintamaniFont, monospace`;
+  const titleWidth = ctx.measureText('CINTAMANI').width;
+  // 로고가 잘리지 않는 한도 내에서 최대한 왼쪽으로 - 텍스트 폭의 절반 + 여백보다 왼쪽으로
+  // 가면 왼쪽 가장자리가 캔버스 밖으로 잘려나간다.
+  const logoX = Math.max(titleWidth / 2 + 24, cw * 0.22);
 
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `bold ${Math.floor(ch * 0.12)}px CintamaniFont, monospace`;
-  ctx.fillText('CINTAMANI', centerX, ch * 0.4);
+  ctx.fillText('CINTAMANI', logoX, ch * 0.4);
 
   // 세 선택지를 하나의 덩어리로 보고 위아래로 통통 튀는 느낌을 준다 — 개별 줄마다
   // 따로 튀면 줄 사이 간격이 흔들려 보이므로, 같은 오프셋을 함께 적용한다.
   const bounce = Math.sin(performance.now() / 200) * (ch * 0.02);
   ctx.font = `${Math.floor(ch * 0.035)}px CintamaniFont, monospace`;
-  ctx.fillText('ENTER - GAME START', centerX, ch * 0.62 + bounce);
-  ctx.fillText('T - TEST MODE', centerX, ch * 0.69 + bounce);
-  ctx.fillText('L - LEADERBOARD', centerX, ch * 0.76 + bounce);
+  ctx.fillText('ENTER - GAME START', logoX, ch * 0.62 + bounce);
+  ctx.fillText('T - TEST MODE', logoX, ch * 0.69 + bounce);
+  ctx.fillText('L - LEADERBOARD', logoX, ch * 0.76 + bounce);
 
   versionLayer(ctx);
 }

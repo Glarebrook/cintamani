@@ -57,7 +57,7 @@ const SCORE_FONT_SIZE = 20;
 
 function drawSectionTitle(ctx, text, y, width) {
   ctx.fillStyle = TEXT_COLOR;
-  ctx.font = `bold ${TITLE_FONT_SIZE}px CintamaniFont, monospace`;
+  ctx.font = `bold ${TITLE_FONT_SIZE}px UIFont, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(text, width / 2, y);
@@ -142,7 +142,7 @@ function drawSnakeStatsColumn(ctx, world, x, width, contentTop, contentH) {
     drawIconOrFallback(ctx, item.icon, slotCx, iconCy, iconRadius, item.fallback);
 
     ctx.fillStyle = TEXT_COLOR;
-    ctx.font = `bold ${ITEM_FONT_SIZE}px CintamaniFont, monospace`;
+    ctx.font = `bold ${ITEM_FONT_SIZE}px UIFont, sans-serif`;
     ctx.fillText(String(item.value), slotCx, textCy);
   });
 }
@@ -165,7 +165,7 @@ function drawEnemyKillsColumn(ctx, world, x, width, contentTop, contentH) {
     drawIconOrFallback(ctx, getEnemyIcon(id), slotCx, iconCy, iconRadius, def.color);
 
     ctx.fillStyle = TEXT_COLOR;
-    ctx.font = `bold ${ITEM_FONT_SIZE}px CintamaniFont, monospace`;
+    ctx.font = `bold ${ITEM_FONT_SIZE}px UIFont, sans-serif`;
     const count = world.stats.killsByType[id] || 0;
     ctx.fillText(String(count), slotCx, textCy);
   }
@@ -188,7 +188,7 @@ function drawCintamaniColumn(ctx, world, x, width, contentTop, contentH) {
     drawIconOrFallback(ctx, getCintamaniIcon(key), slotCx, iconCy, iconRadius, CINTAMANI_COLOR[key]);
 
     ctx.fillStyle = TEXT_COLOR;
-    ctx.font = `bold ${ITEM_FONT_SIZE}px CintamaniFont, monospace`;
+    ctx.font = `bold ${ITEM_FONT_SIZE}px UIFont, sans-serif`;
     ctx.fillText(`×${world.stats.cintamani[key]}`, slotCx, textCy);
   }
 }
@@ -198,7 +198,7 @@ function drawCintamaniColumn(ctx, world, x, width, contentTop, contentH) {
 // (drawDarkPanel) 위에 그려지므로 눈에 잘 띄게 점수 강조색(골드)을 쓴다.
 function drawScore(ctx, world, width, y) {
   ctx.fillStyle = '#ffd54f';
-  ctx.font = `bold ${SCORE_FONT_SIZE}px CintamaniFont, monospace`;
+  ctx.font = `bold ${SCORE_FONT_SIZE}px UIFont, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(Math.floor(getTotalScore(world)).toLocaleString(), width / 2, y);

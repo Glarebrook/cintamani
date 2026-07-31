@@ -1,5 +1,5 @@
 import {
-  GRID_W, GRID_H, PLAYABLE_MIN_X, PLAYABLE_MIN_Y, PLAYABLE_MAX_X, PLAYABLE_MAX_Y,
+  PLAYABLE_MIN_X, PLAYABLE_MIN_Y, PLAYABLE_MAX_X, PLAYABLE_MAX_Y,
   ENEMY_SCALE, ENEMY_SPAWN_MIN_MS, ENEMY_SPAWN_MAX_MS,
   ENEMY_SPAWN_SLOWDOWN_THRESHOLD, ENEMY_SPAWN_SLOWDOWN_FACTOR,
   ENEMY_MIN_SPAWN_DISTANCE_FROM_HEAD, CAPTURE_ZONE_MIN_SPAWN_DISTANCE,
@@ -159,12 +159,17 @@ export class EnemyManager {
     const snake = world.snake;
     const head = snake.head;
     const candidates = [];
-    // 후보 칸 범위는 captureZone 여백과 "벽 안쪽(뱀이 실제로 갈 수 있는 범위)" 중 더 좁은 쪽을
-    // 쓴다 - 안 그러면 적이 회색 벽 구역에 스폰돼 영구히 도달 불가능해진다.
-    const minX = Math.max(margin, PLAYABLE_MIN_X);
-    const maxX = Math.min(GRID_W - margin, PLAYABLE_MAX_X);
-    const minY = Math.max(margin, PLAYABLE_MIN_Y);
-    const maxY = Math.min(GRID_H - margin, PLAYABLE_MAX_Y);
+    // 버그픽스1: margin은 "벽 안쪽(뱀이 실제로 갈 수 있는 범위, PLAYABLE_MIN/MAX)" 경계를
+    // 기준으로 안쪽으로 들여야 한다 - 필드 벽 패치 이전엔 GRID_W/GRID_H가 곧 실제 이동 가능
+    // 경계였어서 그 기준으로 계산해도 맞았지만, 벽이 생긴 뒤로는 GRID_W/H가 벽 바깥의 절대
+    // 필드 크기라 PLAYABLE_MAX_X(190) < GRID_W - margin(193)처럼 margin 제약이 사실상
+    // 무력화돼 있었다(항상 더 느슨한 PLAYABLE 쪽 경계만 적용됨) - 그 결과 2/4번적(captureZone)이
+    // 벽에 바짝 붙어 스폰돼 감쌀 공간이 없어지는 문제가 실제로 나타났다. PLAYABLE_MIN/MAX
+    // 기준으로 margin만큼 들여쓰면 항상 "벽 안쪽 + 여백"이 보장된다.
+    const minX = PLAYABLE_MIN_X + margin;
+    const maxX = PLAYABLE_MAX_X - margin;
+    const minY = PLAYABLE_MIN_Y + margin;
+    const maxY = PLAYABLE_MAX_Y - margin;
     for (let x = minX; x < maxX; x++) {
       for (let y = minY; y < maxY; y++) {
         const occupiedBySnake = snake.occupies(x, y);
