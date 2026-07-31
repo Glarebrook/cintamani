@@ -200,9 +200,13 @@ body {
 /* 모바일(터치 우선 기기) 전용 조작 오버레이 - js/input/touchControls.js가 터치 기기로
    판단됐을 때만 hidden을 떼서 보이게 한다. 컨테이너는 pointer-events:none으로 비워두고
    버튼 각각만 auto로 켜서, 버튼 사이 빈 공간을 눌러도 아래 게임 화면에 영향 없게 한다.
-   #play-area(게임 캔버스+상태창 캔버스를 함께 감싸는 부모, position:relative)의 자식으로
-   둬서, inset이 게임 캔버스뿐 아니라 상태창 캔버스까지 전체를 덮는다 - 버튼이 실제 플레이
-   화면보다 아래(상태창 쪽)에 걸치게 해서 손가락이 필드를 덜 가리게 하기 위함. */
+   #play-area(상태창 캔버스+게임 캔버스를 함께 감싸는 부모, position:relative)의 자식으로
+   둬서, inset이 상태창/게임 캔버스 구분 없이 화면 전체를 덮는다 - #touch-dpad의 left:16이
+   "게임 캔버스 왼쪽"이 아니라 "화면 전체 왼쪽"(=상태창 쪽)을 가리키게 하기 위함(실제
+   신고된 문제: 한때 #canvas-stage 자식으로 옮겼더니 방향키가 상태창 폭만큼 오른쪽으로
+   치우쳐 게임 영역 안에서만 나왔었음). #touch-actions/#touch-debug는 right:16 기준이라
+   #canvas-stage가 #play-area의 가장 오른쪽 자식으로 붙어있는 한 이 부모 변경으로
+   위치가 달라지지 않는다 - 오른쪽 끝은 어느 쪽 기준이든 같은 지점이기 때문. */
 #touch-controls {
   position: absolute;
   inset: 2px;
