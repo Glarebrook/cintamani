@@ -10,7 +10,9 @@
 const ENEMY_IDS = [1, 2, 3, 4, 5];
 const CINTAMANI_KEYS = ['red', 'blue', 'green', 'yellow'];
 const WEAPON_KEYS = ['venom', 'scaleWave'];
-const STAT_KEYS = ['speed', 'length'];
+// length는 더 이상 이 로더를 안 쓴다 - render/statusPanel.js가 뱀 스프라이트시트에서
+// "오른쪽 보는 머리" 칸을 직접 잘라와 쓰도록 바뀌었다(drawSnakeHeadIcon 참고).
+const STAT_KEYS = ['speed'];
 
 // 그려지는 실제 픽셀(투명하지 않은 부분)의 바운딩 박스를 이미지 원본 좌표계로 구한다 - 사용자가
 // 그린 PNG가 64x64 캔버스 가장자리까지 꽉 채우지 않고 여백을 두면, 색깔 사각형/원 폴백과 같은

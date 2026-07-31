@@ -5,6 +5,7 @@ import {
 } from '../config/constants.js';
 import { toScreenX, toScreenY, screenCellSize, getViewportPixelSize } from '../core/gridMath.js';
 import { getCaptureZoneBounds } from '../content/mechanics/encirclement.js';
+import { getSnakeSpriteSheet, getHeadRect, getTailRect, getBodyRect, dirFromDelta } from './snakeSprites.js';
 
 const COLOR = {
   bg:   '#111111',
@@ -82,56 +83,36 @@ function itemLayer(ctx, world) {
   world.itemManager.render(ctx, world.camera);
 }
 
-// 이번 틱 동안의 진행률(world.tickProgress, 0~1)만큼 prevSegments[i]에서 segments[i]로
-// 선형보간한 좌표를 반환한다 - 패치2(뱀이 한 칸씩 "뚝뚝" 끊겨 보이던 문제)의 핵심.
-// 뱀은 항상 정확히 한 축으로만 한 칸 움직이므로(대각선 이동 없음), 칸별로 독립 보간해도
-// 각 칸은 항상 자신의 이전/다음 칸을 잇는 직선 위를 움직인다 - 꼬여 보일 걱정이 없다.
-// prevSegments에 해당 인덱스가 없으면(방금 성장으로 늘어난 칸 등) 그냥 현재 위치를 쓴다.
-function interpolatedSegment(snake, i, t) {
-  const cur = snake.segments[i];
-  const prev = snake.prevSegments[i];
-  if (!prev || t >= 1) return cur;
-  return { x: prev.x + (cur.x - prev.x) * t, y: prev.y + (cur.y - prev.y) * t };
-}
-
-// 꼬리부터 그려서 머리가 위에 오도록. 평소 색을 먼저 다 그린 뒤, 아이템 섭취 직후 머리에서
-// 꼬리 쪽으로 흘러가는 반짝임 웨이브 중인 칸에만 그 아이템 색을 낮은 불투명도(ITEM_FLASH_ALPHA)로
-// 덧씌운다 - 색을 통째로 바꿔치기하지 않고 은은하게 틴트만 얹는 방식(Snake.isFlashingAt 참고).
-function snakeLayer(ctx, world) {
-  const camera = world.camera;
-  const C = screenCellSize();
-  const snake = world.snake;
-  const segments = snake.segments;
-  const t = world.tickProgress ?? 1;
-
+// assets/snake/snake_spritesheet.png가 아직 로딩 전이거나 없을 때 쓰는 기존 렌더링 -
+// 색깔 사각형 + 척추선(뱀 몸이 스스로 겹칠 때 흰 덩어리로 보이던 문제의 해결책). 스프라이트를
+// 쓸 수 있게 되면 이 함수 대신 아래 spriteSnakeLayer가 그린다(다른 아이콘들과 같은 "이미지
+// 없으면 폴백" 패턴 - render/snakeSprites.js 참고).
+// 뱀 자체는 이제 부드럽게 보간하지 않고 틱마다 한 칸씩 딱딱 이동한다(예전 방식으로 되돌림 -
+// 스프라이트 도입 후 회전 방향이 다른 두 스프라이트 사이를 보간할 방법이 없어서 꺾을 때
+// 머리가 몸통에서 떨어져 보이는 문제가 있었다). 화면이 부드럽게 느껴지는 건 카메라
+// 자체가 매 프레임 목표 지점을 향해 부드럽게 따라가기 때문(core/camera.js) - 뱀이 미끄러지는
+// 게 아니라 카메라가 미끄러진다.
+function fallbackSnakeLayer(ctx, world, camera, C, snake, segments) {
   ctx.fillStyle = COLOR.body;
   for (let i = segments.length - 1; i >= 1; i--) {
-    const s = interpolatedSegment(snake, i, t);
+    const s = segments[i];
     ctx.fillRect(toScreenX(s.x, camera), toScreenY(s.y, camera), C, C);
   }
 
-  // 몸이 스스로 겹치거나 촘촘하게 감기면 흰 사각형들이 붙어서 하나의 덩어리처럼 보여
-  // 구불구불한 형태가 안 보이는 문제가 실제로 신고됐다 - 칸마다 테두리를 두르는 대신,
-  // 머리부터 꼬리까지 각 칸의 중앙점을 순서대로 이어주는 회색 선(척추선) 하나를 그린다.
-  // segments 배열은 항상 머리(0번)→꼬리 순이고, 배열상 이웃한 두 칸은 뱀이 움직이는 방식상
-  // 실제 격자에서도 항상 붙어있다 - 그래서 그냥 중앙점을 순서대로 쭉 이으면, 몸이 어떻게
-  // 접혀있든 자동으로 꺾이는 선이 그려져서 지나온 경로 순서가 드러난다.
   if (segments.length >= 2) {
     ctx.strokeStyle = 'rgba(100, 100, 100, 0.6)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    const head0 = interpolatedSegment(snake, 0, t);
+    const head0 = segments[0];
     ctx.moveTo(toScreenX(head0.x, camera) + C / 2, toScreenY(head0.y, camera) + C / 2);
     for (let i = 1; i < segments.length; i++) {
-      const s = interpolatedSegment(snake, i, t);
+      const s = segments[i];
       ctx.lineTo(toScreenX(s.x, camera) + C / 2, toScreenY(s.y, camera) + C / 2);
     }
     ctx.stroke();
   }
 
-  // 척추선의 시작점(머리 칸 중앙)까지 이어져 그려지므로, 머리를 이 뒤에 칠해야 그 부분이
-  // 빨간 머리에 자연스럽게 가려져서 선이 머리에서부터 뻗어나오는 것처럼 보인다.
-  const head = interpolatedSegment(snake, 0, t);
+  const head = segments[0];
   ctx.fillStyle = COLOR.head;
   ctx.fillRect(toScreenX(head.x, camera), toScreenY(head.y, camera), C, C);
 
@@ -140,10 +121,103 @@ function snakeLayer(ctx, world) {
     ctx.fillStyle = snake.flashColor;
     for (let i = 0; i < segments.length; i++) {
       if (!snake.isFlashingAt(i)) continue;
-      const s = interpolatedSegment(snake, i, t);
+      const s = segments[i];
       ctx.fillRect(toScreenX(s.x, camera), toScreenY(s.y, camera), C, C);
     }
     ctx.globalAlpha = 1;
+  }
+}
+
+// segments[i]에 그릴 스프라이트 소스 사각형을 정한다 - 머리(0번)는 진행 방향(snake.dir),
+// 꼬리(마지막 번)는 그 앞 칸에서 온 방향, 중간 칸은 양옆 이웃 방향으로 직선/코너를 고른다.
+// 길이가 1이면(머리=꼬리) 그냥 머리로 취급한다. 뱀이 틱마다 한 칸씩 딱딱 이동하고 화면상
+// 위치도 보간 없이 그 즉시 바뀌므로, 머리 방향도 snake.dir을 그대로 쓰면 된다 - 위치와
+// 방향이 항상 같은 프레임에 같이 바뀌어서 어긋날 일이 없다.
+function resolveSpriteRect(snake, i) {
+  const segments = snake.segments;
+  const n = segments.length;
+  const cur = segments[i];
+
+  if (i === 0) {
+    return getHeadRect(dirFromDelta(snake.dir.x, snake.dir.y) ?? 'E');
+  }
+  if (i === n - 1) {
+    // snakeSprites.js 모듈 설명 참고 - "진행 방향"은 꼬리에서 그 앞 칸(머리쪽 이웃)으로
+    // 가는 방향이지, 그 앞 칸에서 꼬리로 온 방향이 아니다(순서 반대로 하면 남/북이 뒤집힘).
+    const prev = segments[i - 1];
+    return getTailRect(dirFromDelta(prev.x - cur.x, prev.y - cur.y) ?? 'E');
+  }
+  const prev = segments[i - 1];
+  const next = segments[i + 1];
+  const dirToPrev = dirFromDelta(prev.x - cur.x, prev.y - cur.y);
+  const dirToNext = dirFromDelta(next.x - cur.x, next.y - cur.y);
+  return getBodyRect(dirToPrev, dirToNext);
+}
+
+// 아이템 섭취 반짝임을 스프라이트의 실제 그려진 모양에만 입히기 위한 1칸짜리 오프스크린
+// 캔버스 - 메인 캔버스에 곧바로 source-atop을 걸면, 배경 레이어가 뷰포트 전체를 이미
+// 불투명하게 채워둔 상태라 "투명한 곳"이 하나도 없어서 source-atop이 스프라이트 모양대로
+// 걸러주는 효과가 없다(사각형 전체가 그대로 틴트됨). 그래서 원래 완전히 투명한 상태로
+// 시작하는 별도 캔버스에 스프라이트만 먼저 그리고, 거기서 틴트를 건 다음 그 결과를
+// 메인 캔버스로 옮겨 그린다.
+let tintCanvas = null;
+let tintCtx = null;
+function tintSprite(sheet, rect, size, color, alpha) {
+  if (typeof document === 'undefined') return null; // 헤드리스(jsc) 테스트 등 방어
+  const px = Math.ceil(size);
+  if (!tintCanvas) {
+    tintCanvas = document.createElement('canvas');
+    tintCtx = tintCanvas.getContext('2d');
+  }
+  if (tintCanvas.width !== px || tintCanvas.height !== px) {
+    tintCanvas.width = px;
+    tintCanvas.height = px;
+  } else {
+    tintCtx.clearRect(0, 0, px, px);
+  }
+  tintCtx.drawImage(sheet, rect.sx, rect.sy, rect.sw, rect.sh, 0, 0, px, px);
+  tintCtx.globalCompositeOperation = 'source-atop';
+  tintCtx.globalAlpha = alpha;
+  tintCtx.fillStyle = color;
+  tintCtx.fillRect(0, 0, px, px);
+  tintCtx.globalCompositeOperation = 'source-over';
+  tintCtx.globalAlpha = 1;
+  return tintCanvas;
+}
+
+// assets/snake/snake_spritesheet.png가 로딩되면 색깔 사각형 대신 이어진 뱀 모양으로 그린다
+// (render/snakeSprites.js 참고) - 꼬리부터 그려서 머리가 위에 오도록 하는 건 기존과 동일.
+// 스프라이트 자체가 이미 이어진 모양이라 척추선(fallbackSnakeLayer 참고)은 더 이상
+// 필요 없다 - 오히려 그려진 뱀 위에 선이 하나 더 그어지는 게 어색해서 여기서는 안 그린다.
+function spriteSnakeLayer(ctx, world, sheet, camera, C, snake, segments) {
+  for (let i = segments.length - 1; i >= 0; i--) {
+    const rect = resolveSpriteRect(snake, i);
+    const s = segments[i];
+    const dx = toScreenX(s.x, camera);
+    const dy = toScreenY(s.y, camera);
+
+    if (snake.flashColor && snake.isFlashingAt(i)) {
+      const tinted = tintSprite(sheet, rect, C, snake.flashColor, ITEM_FLASH_ALPHA);
+      if (tinted) {
+        ctx.drawImage(tinted, dx, dy);
+        continue;
+      }
+    }
+    ctx.drawImage(sheet, rect.sx, rect.sy, rect.sw, rect.sh, dx, dy, C, C);
+  }
+}
+
+function snakeLayer(ctx, world) {
+  const camera = world.camera;
+  const C = screenCellSize();
+  const snake = world.snake;
+  const segments = snake.segments;
+
+  const sheet = getSnakeSpriteSheet();
+  if (sheet) {
+    spriteSnakeLayer(ctx, world, sheet, camera, C, snake, segments);
+  } else {
+    fallbackSnakeLayer(ctx, world, camera, C, snake, segments);
   }
 }
 

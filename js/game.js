@@ -38,10 +38,6 @@ function createWorld() {
     camera: null,
     startTime: 0,
     testMode: false,
-    // 현재 틱 안에서 얼마나 지났는지(0~1) - states/playingState.js가 onFrame마다 갱신하고
-    // onTick 시작 시 0으로 되돌린다. render/layers.js의 snakeLayer가 이 값으로 뱀의 각 칸을
-    // prevSegments -> segments로 보간해서, 틱마다 한 칸씩 "뚝뚝" 끊겨 보이던 이동을 부드럽게 만든다.
-    tickProgress: 1,
   };
 
   // testMode: 여러 기능을 빠르게 시험해보기 위한 시작 상태 — 기본보다 긴 초기 길이 +
@@ -120,7 +116,6 @@ function createWorld() {
       scaleWaveUnlocked: false,
     };
     world.startTime = performance.now();
-    world.tickProgress = 1;
     world.itemManager.ensureFood(world.snake, world.enemyManager);
   };
 

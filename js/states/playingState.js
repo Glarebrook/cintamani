@@ -89,13 +89,6 @@ export function createPlayingState({ world, ctx, statusPanel }) {
   let activeTutorial = null;
   // 비늘파동 충전 시작 시각(performance.now()) - null이면 충전 중이 아님.
   let chargeStartAt = null;
-  // 이번 틱이 시작된 이후 지난 시간(ms) - onFrame마다 dt만큼 누적되고 onTick 시작 시 0으로
-  // 리셋된다. world.tickProgress(0~1)를 여기서 계산해 render()가 뱀 이동을 부드럽게 보간할 수
-  // 있게 한다(패치2, entities/snake.js의 prevSegments 참고). core/loop.js가 매 프레임
-  // onFrame(dt) -> (해당하면) onTick() -> onRender() 순으로 부르므로, 틱이 막 발생한 바로 그
-  // 프레임에는 onTick의 리셋이 onFrame의 누적보다 나중에 일어나 progress가 정확히 0으로
-  // 맞춰진 채로 렌더된다.
-  let tickElapsedMs = 0;
 
   // P 또는 ESC로 토글. 재개 시 멈춰있던 시간만큼 world.startTime을 뒤로 밀어서, 생존시간/점수
   // 계산(performance.now() - world.startTime 형태로 쓰는 die()의 survivalMs, render()의
@@ -249,10 +242,6 @@ export function createPlayingState({ world, ctx, statusPanel }) {
   }
 
   function die() {
-    // 게임오버 정지화면이 보간 도중(칸 사이 어중간한 위치)에 멈추지 않도록, 뱀을 항상 실제
-    // 최종 격자 위치(segments)로 그리게 강제한다 - 패치2 보간의 progress=1이 곧 segments 그
-    // 자체를 의미한다(entities/snake.js의 prevSegments 참고).
-    world.tickProgress = 1;
     // scoreBreakdown은 죽는 바로 그 순간의 스냅샷 - survivalMs와 같은 이유로 payload에 담아
     // 넘긴다(가짜 리더보드 이름 입력 화면이 나중에 world.stats를 다시 읽어서 계산하면, 이미
     // gameOver로 넘어간 뒤 world.reset()이 다시 불렸을 때 엉뚱한 값을 보여줄 수 있다).
@@ -272,8 +261,6 @@ export function createPlayingState({ world, ctx, statusPanel }) {
       paused = false;
       activeTutorial = null;
       chargeStartAt = null;
-      tickElapsedMs = 0;
-      world.tickProgress = 1;
       // 타이틀/리더보드 열람 화면에서 합쳐 보였던 게임 캔버스/상태창을 실제 플레이 중엔
       // 다시 구분해서 보여준다(render/statusPanel.js의 setMerged 참고).
       statusPanel.setMerged(false);
@@ -313,10 +300,6 @@ export function createPlayingState({ world, ctx, statusPanel }) {
 
     onFrame(dt) {
       if (paused) return; // 발사체 이동/타이머/충돌 판정 등 프레임 단위 로직을 전부 멈춘다
-      // 뱀 이동 보간(패치2) - 이번 틱 시작 후 지난 시간을 쌓아 world.tickProgress(0~1)로
-      // 변환한다. 위 tickElapsedMs 주석 참고.
-      tickElapsedMs += dt;
-      world.tickProgress = Math.min(1, tickElapsedMs / world.stats.tickMs);
       // 카메라는 매 프레임(틱이 아니라) 갱신해야 부드럽게 보인다 - core/camera.js 참고.
       // 지금 기본 상수(뷰포트=필드 전체)에서는 항상 (0,0)으로 고정돼 시각적으로 아무 변화가
       // 없다 - 실제로 스크롤되게 하려면 VIEWPORT_COLS/ROWS/CAMERA_ZOOM만 바꾸면 된다.
@@ -351,11 +334,6 @@ export function createPlayingState({ world, ctx, statusPanel }) {
 
     onTick() {
       if (paused) return; // 이동/충돌/스폰 타이머 등 틱 단위 로직을 전부 멈춘다
-      // 새 틱이 시작됐으니 보간 시계를 0으로 되돌린다 - 이 프레임의 render()는 core/loop.js
-      // 순서상(onFrame -> onTick -> onRender) 이 리셋 이후에 실행되므로, 방금 이동하기 전
-      // 위치(prevSegments, 즉 이동 전 마지막 모습)를 정확히 progress=0으로 그린다.
-      tickElapsedMs = 0;
-      world.tickProgress = 0;
       const dir = Input.consume();
       if (dir) pendingDirection = dir;
 

@@ -14,10 +14,6 @@ export class Snake {
       initialSegments.push({ x: cx - i, y: cy });
     }
     this.segments = initialSegments;
-    // 직전 틱의 segments 스냅샷 - render/layers.js의 snakeLayer가 이걸 기준으로 현재
-    // segments까지 부드럽게 보간해서 그린다(패치2: 이동이 한 칸씩 "뚝뚝" 끊겨 보이던 문제).
-    // 시작 시점엔 이동이 없었으니 segments와 동일하게 맞춰둔다(보간해도 차이가 없음).
-    this.prevSegments = initialSegments.map(s => ({ x: s.x, y: s.y }));
     this.dir = { x: 1, y: 0 };
     this.growQueue = []; // 성장 대기 위치들 (먹이를 먹은 좌표) — 여러 개를 동시에 기다릴 수 있음
     // 아이템 섭취 시 머리→꼬리로 순차적으로 흘러가며 반짝이는 웨이브 상태.
@@ -31,9 +27,6 @@ export class Snake {
 
   // 한 칸 이동 — 머리 추가, 꼬리 제거 (성장 처리는 checkGrowth에서)
   step(dir) {
-    // 실제로 옮기기 전에 지금 위치를 스냅샷으로 남겨둔다 - 이번 틱 동안의 보간 시작점(0%
-    // 지점)이 된다(패치2, 위 prevSegments 주석 참고).
-    this.prevSegments = this.segments.map(s => ({ x: s.x, y: s.y }));
     this.dir = dir;
     this.segments.unshift({ x: this.head.x + dir.x, y: this.head.y + dir.y });
     this.segments.pop();

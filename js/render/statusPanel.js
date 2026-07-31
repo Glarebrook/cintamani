@@ -14,6 +14,7 @@ import { getDisplaySpeedLevel } from '../core/speedLevel.js';
 import { getTotalScore } from '../core/score.js';
 import { EnemyTypes } from '../content/enemies/index.js';
 import { getEnemyIcon, getCintamaniIcon, getWeaponIcon, getStatIcon, drawIcon } from './statusIcons.js';
+import { getSnakeSpriteSheet, getHeadRect } from './snakeSprites.js';
 import { renderMinimap } from './minimap.js';
 
 const BG_COLOR = '#d9b98a';                 // 밝은 가죽색
@@ -55,9 +56,11 @@ const TITLE_FONT_SIZE = 14;
 const ITEM_FONT_SIZE = 14;
 const SCORE_FONT_SIZE = 20;
 
+// 구획 제목(STATUS/KILL STACK/CINTAMANI)만 장식용 게임 폰트(CintamaniFont)를 쓴다 - 그
+// 아래 실제 수치(속도/길이/킬스택 개수 등)는 가독성 폰트(UIFont)를 그대로 유지한다.
 function drawSectionTitle(ctx, text, y, width) {
   ctx.fillStyle = TEXT_COLOR;
-  ctx.font = `bold ${TITLE_FONT_SIZE}px UIFont, sans-serif`;
+  ctx.font = `bold ${TITLE_FONT_SIZE}px CintamaniFont, monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(text, width / 2, y);
@@ -113,6 +116,24 @@ function drawIconOrFallback(ctx, icon, cx, cy, radius, fallbackColor) {
   ctx.fill();
 }
 
+// 길이 칸 전용 - 별도 아이콘 파일(assets/stats/length.png) 대신, 실제 뱀을 그릴 때 쓰는
+// 스프라이트시트(assets/snake/snake_spritesheet.png)에서 "오른쪽을 보는 머리" 칸을 그대로
+// 잘라와서 보여준다 - 뱀 그림체와 항상 일치하고, 파일을 따로 안 그려도 된다. 시트가 아직
+// 로딩 전이면(또는 없으면) 기존 색깔 원으로 대체한다(다른 아이콘들과 같은 폴백 패턴).
+function drawSnakeHeadIcon(ctx, cx, cy, radius, fallbackColor) {
+  const sheet = getSnakeSpriteSheet();
+  if (sheet) {
+    const rect = getHeadRect('E');
+    const size = radius * 2;
+    ctx.drawImage(sheet, rect.sx, rect.sy, rect.sw, rect.sh, cx - radius, cy - radius, size, size);
+    return;
+  }
+  ctx.fillStyle = fallbackColor;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 // STATUS 구획 - 뱀 기본 스테이터스, 아래 두 구획과 같은 아이콘-위/수치-아래 스타일. x/width는
 // 이제 항상 전체 폭(사이드바 하나뿐이라 좌우로 나눌 열이 없음), contentTop/contentH는 이
 // 구획의 제목(SECTION_TITLE_HEIGHT)을 뺀 실제 내용 영역이다. 속도/길이는 항상 표시하고,
@@ -121,7 +142,7 @@ function drawIconOrFallback(ctx, icon, cx, cy, radius, fallbackColor) {
 function drawSnakeStatsColumn(ctx, world, x, width, contentTop, contentH) {
   const items = [
     { icon: getStatIcon('speed'), fallback: STAT_FALLBACK_COLOR.speed, value: getDisplaySpeedLevel(world.stats.tickMs) },
-    { icon: getStatIcon('length'), fallback: STAT_FALLBACK_COLOR.length, value: world.snake.segments.length },
+    { useSnakeHead: true, fallback: STAT_FALLBACK_COLOR.length, value: world.snake.segments.length },
   ];
   if (world.stats.venomUnlocked) {
     items.push({ icon: getWeaponIcon('venom'), fallback: STAT_FALLBACK_COLOR.venomDamage, value: world.stats.attackDamage });
@@ -139,7 +160,11 @@ function drawSnakeStatsColumn(ctx, world, x, width, contentTop, contentH) {
   ctx.textBaseline = 'middle';
   items.forEach((item, i) => {
     const slotCx = x + slotWidth * i + slotWidth / 2;
-    drawIconOrFallback(ctx, item.icon, slotCx, iconCy, iconRadius, item.fallback);
+    if (item.useSnakeHead) {
+      drawSnakeHeadIcon(ctx, slotCx, iconCy, iconRadius, item.fallback);
+    } else {
+      drawIconOrFallback(ctx, item.icon, slotCx, iconCy, iconRadius, item.fallback);
+    }
 
     ctx.fillStyle = TEXT_COLOR;
     ctx.font = `bold ${ITEM_FONT_SIZE}px UIFont, sans-serif`;
