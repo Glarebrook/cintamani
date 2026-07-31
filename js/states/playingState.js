@@ -13,6 +13,9 @@ import {
 import { ItemTypes } from '../content/items/index.js';
 import { createProjectile } from '../entities/projectile.js';
 import { chaserEnemy } from '../content/enemies/chaser.js';
+import { CintamaniTypes } from '../content/cintamani/index.js';
+import { matchesPattern } from '../algorithms/patternMatch.js';
+import { setTouchActionButtons } from '../input/touchControls.js';
 import {
   PROJECTILE_SPEED, PARTICLE_BURST_COUNT, PARTICLE_SPEED, PARTICLE_LIFE_MS, ENEMY_SCALE,
   SCORE_PER_SECOND, SCORE_PER_ITEM, SCORE_PER_KILL_CAPTURE, SCORE_PER_KILL_PROJECTILE,
@@ -21,6 +24,51 @@ import {
 } from '../config/constants.js';
 import { getSpeedLevel } from '../core/speedLevel.js';
 import { getTotalScore, getScoreBreakdown } from '../core/score.js';
+
+// 여의주(cintamani) 해금/보상/패턴 발동 - 매 틱 onTick()이 호출한다. world만 있으면 되고
+// playingState의 다른 지역 상태(paused 등)는 필요 없어서 모듈 최상위 함수로 뺐다(테스트에서
+// 직접 import해서 확인할 수 있도록 export도 함).
+// 적 처치 지점마다 훅을 거는 대신, 이번 틱의 killsByType를 매번 다시 비교하는 폴링 방식이다 -
+// 이렇게 하면 어떤 킬 경로(투사체/포획/여의주 스킬 자체로 죽인 것 포함)든 다음 틱에 자동으로
+// 반영되고, content/cintamani/의 각 def 파일이 killsByType 갱신 시점을 직접 알 필요가 없다
+// (순환 참조 방지 - red.js/blue.js는 이 레지스트리를 다시 import하지 않는다).
+export function updateCintamani(world) {
+  for (const def of CintamaniTypes.all()) {
+    if (!world.stats.cintamaniUnlocked[def.id]) {
+      const unlocked = Object.entries(def.requiredKills).every(
+        ([enemyId, need]) => (world.stats.killsByType[enemyId] || 0) >= need
+      );
+      if (unlocked) {
+        world.stats.cintamaniUnlocked[def.id] = true;
+        // 해금된 바로 그 킬은 보상 카운트에 포함하지 않는다 - 해금 시점의 킬수를
+        // 기준점으로 저장해두고, 이후 킬만 다음 보상으로 센다.
+        world.stats.cintamaniRewardBaseline[def.id] = world.stats.killsByType[def.rewardEnemyId] || 0;
+      }
+    } else {
+      const currentKills = world.stats.killsByType[def.rewardEnemyId] || 0;
+      const progress = currentKills - world.stats.cintamaniRewardBaseline[def.id];
+      if (progress >= def.rewardInterval) {
+        const granted = Math.floor(progress / def.rewardInterval);
+        world.stats.cintamani[def.id] += granted;
+        world.stats.cintamaniRewardBaseline[def.id] += granted * def.rewardInterval;
+      }
+    }
+
+    // 몸으로 패턴을 만든 "전환 순간"에만 1회 발동 - 계속 같은 모양을 유지하고 있어도
+    // 매 틱 다시 발동하지 않는다(content/mechanics/encirclement.js의 "막 닫히는 순간에만
+    // 포획 인정"과 같은 이유 - 우연히 계속 맞아있는 상태가 아니라 방금 만들어졌을 때만).
+    const matched = world.stats.cintamaniUnlocked[def.id] && matchesPattern(
+      def.pattern, world.snake.head.x, world.snake.head.y, world.snake.dir,
+      (x, y) => world.snake.occupies(x, y)
+    );
+    const wasMatched = world.stats.cintamaniPatternMatched[def.id];
+    world.stats.cintamaniPatternMatched[def.id] = matched;
+    if (matched && !wasMatched && world.stats.cintamani[def.id] > 0) {
+      world.stats.cintamani[def.id]--;
+      def.activate(world);
+    }
+  }
+}
 
 // 이동 → 벽 → 포획 메커니즘 → 자기충돌(포획 시 눈감아줌) → 적충돌 → 먹이 → 성장 → 적 스폰 타이머,
 // V1의 Game._tick() 순서를 그대로 유지한다. 순서를 바꾸면 포획 시 통과 동작이 깨진다.
@@ -181,6 +229,17 @@ export function createPlayingState({ world, hud, ctx, statusPanel }) {
     }
   }
 
+  // 테스트 모드 전용 디버그 단축키(1/2/3) - 몸으로 패턴을 직접 만들지 않아도 즉시 해당 여의주
+  // 스킬을 발동해서 빠르게 확인해볼 수 있게 한다. 정상 발동 경로(updateCintamani)와 달리
+  // 재고 소비나 cintamaniPatternMatched 갱신을 건드리지 않는다 - 순수 디버그 트리거라 정상
+  // 발동 로직의 상태와 섞이면 안 된다. green처럼 아직 등록 안 된 색상은 조용히 무시한다.
+  function triggerCintamaniDebug(colorId) {
+    if (paused) return;
+    const def = CintamaniTypes.get(colorId);
+    if (!def) return;
+    def.activate(world);
+  }
+
   function die() {
     // scoreBreakdown은 죽는 바로 그 순간의 스냅샷 - survivalMs와 같은 이유로 payload에 담아
     // 넘긴다(가짜 리더보드 이름 입력 화면이 나중에 world.stats를 다시 읽어서 계산하면, 이미
@@ -211,6 +270,16 @@ export function createPlayingState({ world, hud, ctx, statusPanel }) {
       window.addEventListener('keyup', onSpaceUp);
       Actions.bind('p', togglePause);
       Actions.bind('Escape', togglePause);
+      // 1/2/3 여의주 디버그 단축키 - 테스트 모드에서만 활성화(실제 플레이에서 스킬을
+      // 공짜로 즉시 발동시킬 수 있으면 안 되므로).
+      if (world.testMode) {
+        Actions.bind('1', () => triggerCintamaniDebug('red'));
+        Actions.bind('2', () => triggerCintamaniDebug('blue'));
+        Actions.bind('3', () => triggerCintamaniDebug('green'));
+      }
+      // 모바일 터치 오버레이 - 플레이 중엔 T/L이 필요 없어지고 대신 ENTER(튜토리얼 팝업
+      // 닫기)/SPACE(무기)/P(일시정지)가 필요해진다.
+      setTouchActionButtons(['touch-enter', 'touch-space', 'touch-p']);
     },
     exit() {
       window.removeEventListener('keydown', onSpaceDown);
@@ -218,6 +287,9 @@ export function createPlayingState({ world, hud, ctx, statusPanel }) {
       Actions.unbind('p');
       Actions.unbind('Escape');
       Actions.unbind('Enter'); // 튜토리얼이 떠 있는 채로 상태를 벗어나는 경우를 대비한 방어적 정리
+      Actions.unbind('1');
+      Actions.unbind('2');
+      Actions.unbind('3');
     },
 
     onFrame(dt) {
@@ -232,6 +304,12 @@ export function createPlayingState({ world, hud, ctx, statusPanel }) {
       world.snake.updateFlash(dt);
       world.enemyManager.updateMovement(dt, world);
       world.enemyManager.updateAbilities(dt, world);
+      // 여의주 스킬 중 지속형 효과(blue의 10초짜리 비 등) 갱신 - tickEffect가 없는 def(red 등,
+      // 즉발형)는 그냥 건너뛴다. enemyManager의 ability 훅과 같은 "옵션 훅, 있으면 매 프레임 호출"
+      // 패턴.
+      for (const def of CintamaniTypes.all()) {
+        def.tickEffect?.(world, dt);
+      }
       // 적 발사체에 머리를 맞는 건 onTick의 충돌 순서와 무관하게 어느 프레임에서든 일어날 수
       // 있는 별개의 사건이라, onTick을 기다리지 않고 여기서 바로 die() 처리한다.
       if (headHit) return die();
@@ -322,6 +400,8 @@ export function createPlayingState({ world, hud, ctx, statusPanel }) {
           });
         }
       }
+
+      updateCintamani(world);
     },
 
     render() {

@@ -119,13 +119,29 @@ function particleLayer(ctx, world) {
   const C = CELL_SIZE;
   const size = Math.max(1, Math.floor(C * PROJECTILE_SIZE_RATIO));
   for (const particle of world.particleManager.particles) {
-    const px = particle.x * C;
-    const py = particle.y * C;
+    const px = particle.x * C + size / 2;
+    const py = particle.y * C + size / 2;
     ctx.globalAlpha = Math.max(0, particle.life / particle.maxLife);
     ctx.fillStyle = particle.color;
-    ctx.beginPath();
-    ctx.arc(px + size / 2, py + size / 2, size / 2, 0, Math.PI * 2);
-    ctx.fill();
+    if (particle.shape === 'line') {
+      // blue 여의주의 빗방울 - 점 대신 진행 방향으로 짧은 선을 그려서 "실선이 대각선으로
+      // 흩뿌려지는" 느낌을 낸다(entities/particle.js 참고). 속도 벡터를 정규화해서 길이를
+      // 칸 크기 비례로 고정 - 파티클마다 speed가 달라도 선 길이는 항상 일정하게 보인다.
+      const norm = Math.hypot(particle.vx, particle.vy) || 1;
+      const len = C * 0.8;
+      const dx = (particle.vx / norm) * len;
+      const dy = (particle.vy / norm) * len;
+      ctx.strokeStyle = particle.color;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px - dx, py - dy);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(px, py, size / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   ctx.globalAlpha = 1;
 }
@@ -170,6 +186,66 @@ function scaleWaveLayer(ctx, world) {
   ctx.restore();
 }
 
+// red 여의주(content/cintamani/red.js) 발동 순간 빔 경로에 뜨는 불기둥 - 그냥 단색 반투명
+// 사각형이면 불처럼 안 보인다는 피드백으로 두 가지를 바꿨다: (1) 진행 방향에 수직인 폭
+// 방향으로 빨강(가장자리)->노랑(중심)->빨강 그라데이션을 줘서 불꽃 단면처럼 보이게 하고,
+// (2) 즉시 사라지는 하드 컷 대신 duration에 걸쳐 알파를 1->0으로 선형 감쇠시켜 서서히
+// 꺼지는 것처럼 보이게 한다(실제 불티 파티클은 particleLayer가 따로 그림 - activate()의
+// spawnBurst 참고).
+function redBeamLayer(ctx, world) {
+  const effect = world.redBeamEffect;
+  if (!effect) return;
+  const elapsed = performance.now() - effect.startedAt;
+  if (elapsed >= effect.duration) return;
+  const C = CELL_SIZE;
+  const fade = 1 - elapsed / effect.duration;
+
+  const { headCell, dir } = effect;
+  let gradient;
+  if (dir.x !== 0) {
+    gradient = ctx.createLinearGradient(0, (headCell.y - 1) * C, 0, (headCell.y + 2) * C);
+  } else {
+    gradient = ctx.createLinearGradient((headCell.x - 1) * C, 0, (headCell.x + 2) * C, 0);
+  }
+  gradient.addColorStop(0, '#ff3300');
+  gradient.addColorStop(0.5, '#ffe066');
+  gradient.addColorStop(1, '#ff3300');
+
+  ctx.save();
+  ctx.globalAlpha = fade;
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  for (const { x, y } of effect.cells) {
+    ctx.rect(x * C, y * C, C, C);
+  }
+  ctx.fill();
+  ctx.restore();
+}
+
+// blue 여의주(content/cintamani/blue.js) 발동 중인 10초짜리 비 지대 - 은은한 푸른 원형
+// 영역으로 표시한다. 실제 빗방울(대각선 파티클)은 particleLayer가 particleManager의
+// particles를 통해 그린다(blue.js의 tickEffect가 주기적으로 spawnRain).
+function blueRainLayer(ctx, world) {
+  const effect = world.blueRainEffect;
+  if (!effect || performance.now() >= effect.expiresAt) return;
+  const C = CELL_SIZE;
+  const cx = (effect.x + 0.5) * C;
+  const cy = (effect.y + 0.5) * C;
+  const r = effect.radius * C;
+  ctx.save();
+  ctx.globalAlpha = 0.22; // 기존 0.16이 너무 흐려서 실제 크기(반지름 5칸)보다 작아 보인다는
+  // 피드백으로 채우기를 살짝 진하게, 테두리 선을 추가해 경계가 뚜렷이 보이게 했다.
+  ctx.fillStyle = '#3fa7ff';
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 0.55;
+  ctx.strokeStyle = '#7fd4ff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
 // 지금 화면이 실제로 최신 코드를 불러온 게 맞는지 눈으로 바로 확인할 수 있도록,
 // 우측 하단에 작게 빌드 표시를 띄운다. export하는 이유: 원래는 이 레이어 목록(실제 플레이/
 // 게임오버 화면)에서만 쓰였지만, 타이틀/리더보드 열람 화면(overlays.js, 이 레이어 목록을
@@ -186,6 +262,6 @@ export function versionLayer(ctx) {
 }
 
 export const layers = [
-  backgroundLayer, captureZoneLayer, itemLayer, scaleWaveLayer, snakeLayer, projectileLayer, enemyLayer,
-  particleLayer, scorePopupLayer, versionLayer,
+  backgroundLayer, captureZoneLayer, blueRainLayer, itemLayer, scaleWaveLayer, redBeamLayer,
+  snakeLayer, projectileLayer, enemyLayer, particleLayer, scorePopupLayer, versionLayer,
 ];

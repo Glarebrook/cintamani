@@ -1,8 +1,9 @@
 import {
   TICK_MS, PROJECTILE_DAMAGE, SNAKE_INITIAL_LENGTH, TEST_MODE_INITIAL_LENGTH, TEST_MODE_TICK_MS,
-  SCALE_WAVE_UNLOCK_CHASER_KILLS, SCALE_WAVE_DAMAGE,
+  SCALE_WAVE_UNLOCK_CHASER_KILLS, SCALE_WAVE_DAMAGE, TEST_MODE_CINTAMANI_COUNT,
 } from './config/constants.js';
 import { chaserEnemy } from './content/enemies/chaser.js';
+import { CintamaniTypes } from './content/cintamani/index.js';
 import { createEventBus } from './core/eventBus.js';
 import { createStateMachine } from './core/stateMachine.js';
 import { createGameLoop } from './core/loop.js';
@@ -66,19 +67,39 @@ function createWorld() {
     // 비늘파동도 실제로 3번적을 5마리 잡지 않고 바로 시험해볼 수 있게 하기 위함
     // (states/playingState.js의 scaleWaveUnlocked 조건 참고 - venomUnlocked가 선행돼야 하므로
     // 실제로 켜지는 건 venomUnlocked가 켜진 바로 다음 틱이다).
-    // cintamani: 여의주 색상별(red/blue/green/yellow) 보유 개수 - 아직 게임에 없는 개념이라
-    // 항상 0, 상태창 3열에 자리만 미리 잡아둔 것. 식별자는 "여의주"의 음역(yeouiju)이 아니라
+    // cintamani: 여의주 색상별(red/blue/green/yellow) 보유 개수 - green/yellow는 아직 콘텐츠가
+    // 없어 항상 0, 상태창 3열에 자리만 미리 잡아둔 것. 식별자는 "여의주"의 음역(yeouiju)이 아니라
     // "cintamani"(여의주의 산스크리트/영문 명칭, 이 게임 이름과 동일)를 쓴다 - 표기가 두 개로
     // 갈리면 나중에 헷갈릴 수 있어서.
     // venomUnlocked/scaleWaveUnlocked: 판마다 리셋되는 무기 잠금 해제 플래그 - 한 번 true가 되면
     // (길이가 나중에 줄어들거나 해도) 이번 판 내내 유지된다. states/playingState.js 참고.
+    // cintamaniUnlocked/cintamaniRewardBaseline/cintamaniPatternMatched: content/cintamani/*.js에
+    // 등록된 색상마다 하나씩, CintamaniTypes 레지스트리 기준으로 동적 생성 - 새 색상(예: green)이
+    // 추가돼도 이 파일은 손댈 필요 없다. 각각 states/playingState.js의 해금 판정/보상 카운트/
+    // 패턴 발동 감지(전환 시에만 1회 발동)에 쓰인다.
+    // 테스트 모드는 등록된 여의주 전부를 해금 상태로, 개수도 TEST_MODE_CINTAMANI_COUNT만큼 채워서
+    // 시작한다 - 독침/비늘파동을 미리 풀어주는 것과 같은 이유(실제로 조건을 채우지 않고도
+    // 바로 패턴 발동을 시험해볼 수 있게). green/yellow는 아직 레지스트리에 없어 이 값과 무관하게
+    // 항상 0으로 남는다.
+    const killsByType = testMode ? { [chaserEnemy.id]: SCALE_WAVE_UNLOCK_CHASER_KILLS } : {};
     world.stats = {
       tickMs,
       attackDamage: PROJECTILE_DAMAGE,
       scaleWaveDamage: SCALE_WAVE_DAMAGE,
       enemyKillStacks: {},
-      killsByType: testMode ? { [chaserEnemy.id]: SCALE_WAVE_UNLOCK_CHASER_KILLS } : {},
-      cintamani: { red: 0, blue: 0, green: 0, yellow: 0 },
+      killsByType,
+      cintamani: {
+        red: 0, blue: 0, green: 0, yellow: 0,
+        ...(testMode ? Object.fromEntries(CintamaniTypes.all().map(def => [def.id, TEST_MODE_CINTAMANI_COUNT])) : {}),
+      },
+      cintamaniUnlocked: Object.fromEntries(CintamaniTypes.all().map(def => [def.id, testMode])),
+      // 보상 기준점은 "지금까지의 킬수"로 맞춰야 한다 - 0으로 두면, 테스트 모드가 미리 채워둔
+      // killsByType(3번적 5킬)가 해금 후 진짜로 잡은 것처럼 보상 계산에 잘못 섞여 들어가서
+      // (5킬 / 2 = 여의주 2개) 의도한 개수(TEST_MODE_CINTAMANI_COUNT)보다 더 많이 지급돼버린다.
+      cintamaniRewardBaseline: Object.fromEntries(
+        CintamaniTypes.all().map(def => [def.id, testMode ? (killsByType[def.rewardEnemyId] || 0) : 0])
+      ),
+      cintamaniPatternMatched: Object.fromEntries(CintamaniTypes.all().map(def => [def.id, false])),
       survivalScore: 0,
       killScore: 0,
       itemScore: 0,

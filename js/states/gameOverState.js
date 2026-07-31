@@ -3,6 +3,7 @@ import { render as renderScene } from '../render/renderer.js';
 import { renderGameOverOverlay } from '../render/overlays.js';
 import { fetchLeaderboard, submitScore } from '../services/leaderboardApi.js';
 import { getTotalScore } from '../core/score.js';
+import { setTouchActionButtons } from '../input/touchControls.js';
 
 export function createGameOverState({ world, ctx, hud, statusPanel, panel, onRestart }) {
   let survivalMs = 0;
@@ -59,6 +60,8 @@ export function createGameOverState({ world, ctx, hud, statusPanel, panel, onRes
       // gameOver는 항상 playing 다음에만 오므로(title -> playing -> gameOver -> title) 이미
       // false겠지만, 다른 상태에 이 값이 뭔지 의존하지 않고 각 상태가 스스로 보장하게 한다.
       statusPanel.setMerged(false);
+      // 모바일 터치 오버레이 - 게임오버 화면에선 ENTER(재시작/등록 후 복귀)만 의미가 있다.
+      setTouchActionButtons(['touch-enter']);
 
       // 테스트 모드(타이틀의 T)로 진행한 판은 공유 리더보드에 올리지 않는다 - 길이/속도를
       // 인위적으로 올려 시작한 판이라 정상 플레이 기록과 섞이면 순위표 의미가 없어진다.

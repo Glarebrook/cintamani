@@ -4,8 +4,9 @@ export const GRID_H   = 40;      // 필드 세로 격자 수
 export const STATUS_PANEL_HEIGHT = 80; // 하단 상태창 캔버스 높이(px) - 너비는 게임 캔버스와 동일(GRID_W*CELL_SIZE). 아이콘을 가로로 한 줄 배치로 바꾸면서 세로 여백이 남아 100에서 축소
 export const TICK_MS  = 120;     // 뱀 이동 간격 (ms)
 export const SNAKE_INITIAL_LENGTH = 3; // 기본 모드 시작 길이
-export const TEST_MODE_INITIAL_LENGTH = 40; // 테스트 모드 시작 길이
-export const TEST_MODE_TICK_MS = 70; // 테스트 모드 시작 이동 간격 (ms)
+export const TEST_MODE_INITIAL_LENGTH = 50; // 테스트 모드 시작 길이
+export const TEST_MODE_TICK_MS = 120; // 테스트 모드 시작 이동 간격 (ms) - 화면 표시 속도가 20이 되는 값(120 = TICK_MS와 동일)
+export const TEST_MODE_CINTAMANI_COUNT = 10; // 테스트 모드 시작 시 여의주 색상별 보유 개수(해금 상태로 시작)
 export const FOOD_SPAWN_MIN_MS = 3000; // 무작위 먹이 등장 최소 간격(ms) - 매번 재추첨
 export const FOOD_SPAWN_MAX_MS = 7000; // 무작위 먹이 등장 최대 간격(ms)
 export const FOOD_MAX_COUNT = 5; // 무작위 타이머로 유지되는 화면 최대 먹이 수 - 처치/포획 보상 스폰은 이 상한과 무관
@@ -114,9 +115,33 @@ export const LEADERBOARD_API_URL = 'api/leaderboard.php';
 export const LEADERBOARD_MAX_ENTRIES = 20; // 서버가 유지하는 상위 기록 수와 동일하게 맞춘다
 export const LEADERBOARD_NAME_MAX_LENGTH = 200; // 서버 쪽 mb_substr 제한과 동일하게 맞춘다
 
+// 여의주(cintamani) - content/cintamani/*.js 참고. 색상 무관 공통 수치는 여기, 색상별
+// 고유 수치(범위/데미지/지속시간 등)는 각 def 파일 쪽에 둔다.
+export const CINTAMANI_UNLOCK_KILLS = 5; // 해금에 필요한 각 적 타입별 처치 수(모든 색 공통)
+export const CINTAMANI_REWARD_KILL_INTERVAL = 2; // 해금 후, 보상 대상 적을 이 수만큼 잡을 때마다 여의주 1개
+
+export const RED_CINTAMANI_BEAM_DAMAGE = 10; // 경로 내 적에게 주는 데미지(적2/4는 데미지 무관 강제 파괴)
+// 불기둥 전체 수명(ms) - render/layers.js의 redBeamLayer가 이 시간에 걸쳐 알파를 1->0으로
+// 선형 감쇠시킨다(즉시 사라지는 게 아니라 서서히 사라지게 해달라는 피드백으로 300 -> 550,
+// 하드 컷 -> 페이드로 변경).
+export const RED_CINTAMANI_BEAM_FLASH_MS = 550;
+export const RED_CINTAMANI_BEAM_EMBER_COUNT = 4; // 불기둥 중심선 지점마다 튀는 불티 파티클 개수
+export const RED_CINTAMANI_BEAM_EMBER_SPEED = 12; // 불티 이동 속도(칸/초)
+export const RED_CINTAMANI_BEAM_EMBER_LIFE_MS = 350; // 불티 한 개가 사라지기까지 걸리는 시간(ms)
+export const RED_CINTAMANI_BEAM_EMBER_STEP = 4; // 중심선 몇 칸마다 한 번씩 불티를 튀길지
+
+export const BLUE_CINTAMANI_RAIN_RADIUS = 5; // 발동 시점 뱀 중앙 마디를 중심으로 한 원형 범위 반지름(칸)
+export const BLUE_CINTAMANI_RAIN_DURATION_MS = 10000; // 효과 지속 시간
+export const BLUE_CINTAMANI_RAIN_DPS_INTERVAL_MS = 1000; // 데미지 적용 간격(초당 1회)
+export const BLUE_CINTAMANI_RAIN_DAMAGE = 2; // 간격마다 적3/5에 주는 데미지
+export const BLUE_CINTAMANI_RAIN_PARTICLE_INTERVAL_MS = 90; // 빗방울 파티클 생성 간격(ms)
+export const BLUE_CINTAMANI_RAIN_PARTICLE_COUNT = 3; // 생성 간격마다 튀는 빗방울 개수
+export const BLUE_CINTAMANI_RAIN_PARTICLE_SPEED = 10; // 빗방울 이동 속도(칸/초)
+export const BLUE_CINTAMANI_RAIN_PARTICLE_LIFE_MS = 500; // 빗방울 한 개가 사라지기까지 걸리는 시간(ms)
+
 // 화면 우측 하단에 표시되는 빌드 표시 — index.html의 캐시 무효화 ?v= 값과 항상 같이 올린다.
 // 코드를 바꿀 때마다 갱신해서, 새로고침한 화면이 실제로 최신 코드인지 눈으로 바로 확인할 수 있게 한다.
-export const BUILD_VERSION = '20260731-7';
+export const BUILD_VERSION = '20260731-17';
 
 // core/updateCheck.js가 대기(타이틀) 화면에서 이 간격마다 index.html을 다시 받아와 서버의
 // 최신 버전과 비교한다 - NAS에 새 파일을 올려도 이미 열려 있는 탭은 스스로 알 방법이 없어서

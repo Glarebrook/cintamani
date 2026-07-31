@@ -1,5 +1,6 @@
 import { GRID_W, GRID_H, CELL_SIZE, STATUS_PANEL_HEIGHT } from './config/constants.js';
 import { createGame } from './game.js';
+import { createTouchControls } from './input/touchControls.js';
 
 window.addEventListener('load', () => {
   const canvas = document.getElementById('game-canvas');
@@ -19,4 +20,6 @@ window.addEventListener('load', () => {
   const game = createGame(canvas);
   window.__game = game;
   game.start();
+
+  createTouchControls();
 });

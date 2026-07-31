@@ -1,6 +1,7 @@
 import { Actions } from '../input/actions.js';
 import { renderTitleScreen } from '../render/overlays.js';
 import { createUpdateChecker } from '../core/updateCheck.js';
+import { setTouchActionButtons } from '../input/touchControls.js';
 
 // world가 아직 시작 전인 화면 — Enter(기본 모드)/T(테스트 모드)로 시작하거나, L로 플레이 없이
 // 순위표만 열람할 수 있다. onStart({ testMode })를 호출해 game.js가 어떤 모드로
@@ -20,6 +21,8 @@ export function createTitleState({ ctx, statusPanel, onStart, onViewLeaderboard 
       Actions.bind('t', () => onStart({ testMode: true }));
       Actions.bind('l', onViewLeaderboard);
       updateChecker.start();
+      // 모바일 터치 오버레이 - 타이틀에서는 T/L/ENTER만 의미가 있다(js/input/touchControls.js).
+      setTouchActionButtons(['touch-t', 'touch-l', 'touch-enter']);
     },
     exit() {
       Actions.unbind('Enter');

@@ -88,6 +88,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  position: relative; /* #touch-controls가 게임+상태창 캔버스 전체를 덮도록 기준점 역할 */
 }
 
 #play-area.merged {
@@ -220,6 +221,91 @@ body {
   font-family: 'CintamaniFont', monospace;
   font-size: 13px;
   cursor: pointer;
+}
+
+/* 모바일(터치 우선 기기) 전용 조작 오버레이 - js/input/touchControls.js가 터치 기기로
+   판단됐을 때만 hidden을 떼서 보이게 한다. 컨테이너는 pointer-events:none으로 비워두고
+   버튼 각각만 auto로 켜서, 버튼 사이 빈 공간을 눌러도 아래 게임 화면에 영향 없게 한다.
+   #play-area(게임 캔버스+상태창 캔버스를 함께 감싸는 부모, position:relative)의 자식으로
+   둬서, inset이 게임 캔버스뿐 아니라 상태창 캔버스까지 전체를 덮는다 - 버튼이 실제 플레이
+   화면보다 아래(상태창 쪽)에 걸치게 해서 손가락이 필드를 덜 가리게 하기 위함. */
+#touch-controls {
+  position: absolute;
+  inset: 2px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+#touch-controls.hidden {
+  display: none;
+}
+
+.touch-btn {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: rgba(255, 255, 255, 0.85);
+  font-family: 'CintamaniFont', monospace;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  touch-action: none; /* 버튼 위에서의 스크롤/확대 제스처를 막아 오조작 방지 */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.touch-btn:active {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* 방향키 - 왼쪽 아래에 십자(3x3, 가운데는 비움) 배치. 버튼 사이 간격 없이 변끼리 딱 붙여서
+   (원형이 아니라 둥근 사각형으로) 진짜 십자키처럼 하나로 이어져 보이게 한다 - 크기도
+   액션 버튼보다 크게(64px) 키워서 엄지로 누르기 편하게 했다. */
+#touch-dpad {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  width: 192px;
+  height: 192px;
+}
+
+#touch-dpad .touch-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  font-size: 22px;
+}
+
+.touch-up    { left: 64px; top: 0; }
+.touch-left  { left: 0;    top: 64px; }
+.touch-right { left: 128px; top: 64px; }
+.touch-down  { left: 64px; top: 128px; }
+
+/* 액션 버튼 - 오른쪽 아래에 2x2, SPACE만 살짝 크게(실제 플레이 중 가장 많이 누르는 버튼) */
+#touch-actions {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: 176px;
+  height: 176px;
+}
+
+/* T(타이틀 전용)와 P(플레이 중 전용)는 동시에 보이는 일이 없어서(js/input/touchControls.js의
+   setTouchActionButtons가 상태별로 둘 중 하나만 표시) 같은 자리를 공유한다. */
+#touch-t, #touch-p { left: 0; top: 0; }
+#touch-l     { left: 62px; top: 0; }
+#touch-enter { left: 0;  top: 62px; }
+.touch-space {
+  left: 62px;
+  top: 62px;
+  width: 114px;
+  height: 114px;
+  font-size: 14px;
 }
 
 #leaderboard-actions button:hover {

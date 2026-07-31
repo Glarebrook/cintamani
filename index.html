@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cintamani</title>
-  <link rel="stylesheet" href="css/style.css?v=20260731-7" />
+  <link rel="stylesheet" href="css/style.css?v=20260731-17" />
 </head>
 <body>
   <div id="game-wrapper">
@@ -43,9 +43,24 @@
         </div>
       </div>
       <canvas id="status-canvas"></canvas>
+      <div id="touch-controls" class="hidden">
+        <div id="touch-dpad">
+          <button type="button" id="touch-up" class="touch-btn touch-up" aria-label="위">▲</button>
+          <button type="button" id="touch-left" class="touch-btn touch-left" aria-label="왼쪽">◀</button>
+          <button type="button" id="touch-right" class="touch-btn touch-right" aria-label="오른쪽">▶</button>
+          <button type="button" id="touch-down" class="touch-btn touch-down" aria-label="아래">▼</button>
+        </div>
+        <div id="touch-actions">
+          <button type="button" id="touch-t" class="touch-btn" aria-label="테스트 모드">T</button>
+          <button type="button" id="touch-p" class="touch-btn" aria-label="일시정지">P</button>
+          <button type="button" id="touch-l" class="touch-btn" aria-label="리더보드">L</button>
+          <button type="button" id="touch-enter" class="touch-btn" aria-label="엔터">ENTER</button>
+          <button type="button" id="touch-space" class="touch-btn touch-space" aria-label="스페이스">SPACE</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <script type="module" src="js/main.js?v=20260731-7"></script>
+  <script type="module" src="js/main.js?v=20260731-17"></script>
 </body>
 </html>
