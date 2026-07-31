@@ -4,30 +4,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cintamani</title>
-  <link rel="stylesheet" href="css/style.css?v=20260731-17" />
+  <link rel="stylesheet" href="css/style.css?v=20260731-22" />
 </head>
 <body>
   <div id="game-wrapper">
-    <div id="stats-bar">
-      <div id="stats-left">
-        <span>공격력 <span class="val" id="stat-attack">1</span></span>
-        <span>뱀 길이 <span class="val" id="stat-size">3</span></span>
-        <span>속도 <span class="val" id="stat-snake-speed">20</span></span>
-        <span>생존 <span class="val" id="stat-time">0.0</span> s</span>
-      </div>
-      <div id="stat-score">0</div>
-    </div>
     <div id="play-area">
+      <canvas id="status-canvas"></canvas>
       <div id="canvas-stage">
         <canvas id="game-canvas"></canvas>
         <div id="leaderboard-overlay" class="hidden">
-          <div id="leaderboard-left">
+          <div id="leaderboard-top">
+            <div id="leaderboard-my-score">
+              <div id="my-score-total"></div>
+              <ul id="my-score-breakdown"></ul>
+              <ul id="my-score-bonus-detail"></ul>
+            </div>
             <form id="leaderboard-form">
-              <div id="leaderboard-my-score">
-                <div id="my-score-total"></div>
-                <ul id="my-score-breakdown"></ul>
-                <ul id="my-score-bonus-detail"></ul>
-              </div>
               <div>이름을 입력하세요</div>
               <input id="leaderboard-name-input" type="text" maxlength="200" autocomplete="off" placeholder="이름 (최대 200자)" />
               <div id="leaderboard-actions">
@@ -35,32 +27,36 @@
                 <button type="button" id="leaderboard-skip-btn">건너뛰기</button>
               </div>
             </form>
+          </div>
+          <div id="leaderboard-bottom">
+            <ol id="leaderboard-list"></ol>
             <div id="leaderboard-footer"></div>
           </div>
-          <div id="leaderboard-right">
-            <ol id="leaderboard-list"></ol>
+        </div>
+        <div id="touch-controls" class="hidden">
+          <div id="touch-dpad">
+            <button type="button" id="touch-up" class="touch-btn touch-up" aria-label="위">▲</button>
+            <button type="button" id="touch-left" class="touch-btn touch-left" aria-label="왼쪽">◀</button>
+            <button type="button" id="touch-right" class="touch-btn touch-right" aria-label="오른쪽">▶</button>
+            <button type="button" id="touch-down" class="touch-btn touch-down" aria-label="아래">▼</button>
           </div>
-        </div>
-      </div>
-      <canvas id="status-canvas"></canvas>
-      <div id="touch-controls" class="hidden">
-        <div id="touch-dpad">
-          <button type="button" id="touch-up" class="touch-btn touch-up" aria-label="위">▲</button>
-          <button type="button" id="touch-left" class="touch-btn touch-left" aria-label="왼쪽">◀</button>
-          <button type="button" id="touch-right" class="touch-btn touch-right" aria-label="오른쪽">▶</button>
-          <button type="button" id="touch-down" class="touch-btn touch-down" aria-label="아래">▼</button>
-        </div>
-        <div id="touch-actions">
-          <button type="button" id="touch-t" class="touch-btn" aria-label="테스트 모드">T</button>
-          <button type="button" id="touch-p" class="touch-btn" aria-label="일시정지">P</button>
-          <button type="button" id="touch-l" class="touch-btn" aria-label="리더보드">L</button>
-          <button type="button" id="touch-enter" class="touch-btn" aria-label="엔터">ENTER</button>
-          <button type="button" id="touch-space" class="touch-btn touch-space" aria-label="스페이스">SPACE</button>
+          <div id="touch-actions">
+            <button type="button" id="touch-t" class="touch-btn" aria-label="테스트 모드">T</button>
+            <button type="button" id="touch-p" class="touch-btn" aria-label="일시정지">P</button>
+            <button type="button" id="touch-l" class="touch-btn" aria-label="리더보드">L</button>
+            <button type="button" id="touch-enter" class="touch-btn" aria-label="엔터">ENTER</button>
+            <button type="button" id="touch-space" class="touch-btn touch-space" aria-label="스페이스">SPACE</button>
+          </div>
+          <div id="touch-debug">
+            <button type="button" id="touch-1" class="touch-btn" aria-label="적색 여의주 디버그">1</button>
+            <button type="button" id="touch-2" class="touch-btn" aria-label="청색 여의주 디버그">2</button>
+            <button type="button" id="touch-3" class="touch-btn" aria-label="녹색 여의주 디버그">3</button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <script type="module" src="js/main.js?v=20260731-17"></script>
+  <script type="module" src="js/main.js?v=20260731-22"></script>
 </body>
 </html>

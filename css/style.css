@@ -37,37 +37,6 @@ body {
   gap: 8px;
 }
 
-/* 좌측 게임 스탯 + 우측 실시간 점수를 양 끝으로 - 점수는 캔버스(게임 플레이 화면) 밖,
-   이 바의 우측 상단에 위치하게 된다 */
-#stats-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  color: #888;
-  font-family: 'CintamaniFont', monospace;
-  font-size: 13px;
-  letter-spacing: 0.04em;
-  padding: 0 2px;
-}
-
-#stats-left {
-  display: flex;
-  gap: 28px;
-}
-
-#stats-bar .val {
-  color: #fff;
-  font-weight: bold;
-}
-
-/* 아이템/처치로 오르는 걸 매 프레임 부드럽게 보여주는 실시간 점수 - 다른 스탯보다 눈에
-   띄게 크고 굵게, 강조색으로 표시한다 */
-#stat-score {
-  color: #ffd54f;
-  font-weight: bold;
-  font-size: 18px;
-}
-
 /* width/height은 JS에서 내부 해상도와 1:1로 설정 → 정사각형 픽셀 보장 */
 #game-canvas {
   display: block;
@@ -81,45 +50,47 @@ body {
   position: relative;
 }
 
-/* 게임 캔버스 + 상태창 캔버스를 묶는 영역 - 기본은 플레이 중 모습(둘을 확실히 구분).
-   타이틀/리더보드 열람 화면에서는 JS(render/statusPanel.js의 setMerged)가 여기에 merged
-   클래스를 붙여 여백/경계선을 없애고 하나의 화면처럼 보이게 한다. */
+/* 상태창 캔버스(좌) + 게임 캔버스(우)를 묶는 영역 - 기본은 플레이 중 모습(둘을 확실히
+   구분). 타이틀/리더보드 열람 화면에서는 JS(render/statusPanel.js의 setMerged)가 여기에
+   merged 클래스를 붙여 여백/경계선을 없애고 하나의 화면처럼 보이게 한다. 세로 크기가 서로
+   다른 두 캔버스가 위쪽 기준으로 나란히 붙어야 하므로 align-items:flex-start(둘 다 실제로는
+   main.js가 높이를 항상 같게 맞추지만, 혹시 다르더라도 어긋나 보이지 않도록 안전하게 둠). */
 #play-area {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: flex-start;
   gap: 8px;
-  position: relative; /* #touch-controls가 게임+상태창 캔버스 전체를 덮도록 기준점 역할 */
+  position: relative;
 }
 
 #play-area.merged {
   gap: 0;
 }
-#play-area.merged #game-canvas {
-  border-bottom: none;
-}
 #play-area.merged #status-canvas {
-  border-top: none;
+  border-right: none;
+}
+#play-area.merged #game-canvas {
+  border-left: none;
 }
 
-/* 게임 캔버스 아래 별도의 하단 상태창 캔버스 - 그림은 render/statusPanel.js가 그린다 */
+/* 게임 캔버스 왼쪽의 세로 상태창 캔버스 - 그림은 render/statusPanel.js가 그린다 */
 #status-canvas {
   display: block;
   border: 2px solid #444;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
+  flex-shrink: 0;
 }
 
-/* 왼쪽: 이번 기록 + 이름 입력, 오른쪽: 기존 순위표 - 나란히 배치해서 한눈에 비교되게 한다 */
+/* 패치5: 초기 버전처럼 입력을 상단 중앙에 두되, 상단을 다시 좌(점수 명세서)/우(이름 입력)로
+   나누고, 그 아래 전체 폭을 순위표가 차지하게 배치한다 - 순위표에 쓸 수 있는 면적이 훨씬
+   넓어진다(예전엔 우측 절반 폭에 최대 460px로 제한돼 있었음). */
 #leaderboard-overlay {
   position: absolute;
   inset: 2px; /* #game-canvas의 2px border 안쪽에 딱 맞춤 */
   display: flex;
-  flex-direction: row;
-  /* align-items:center였으면 자식이 내용 크기만큼 자라서 캔버스 밖으로 넘칠 수 있었음 -
-     stretch로 바꿔서 오른쪽 순위표 영역이 항상 이 오버레이(=캔버스) 높이에 딱 맞게 잡히도록 함 */
-  align-items: stretch;
-  justify-content: center;
-  gap: 32px;
+  flex-direction: column;
+  gap: 20px;
   background: rgba(10, 10, 10, 0.94);
   color: #fff;
   font-family: 'CintamaniFont', monospace;
@@ -131,24 +102,19 @@ body {
   display: none;
 }
 
-#leaderboard-left {
+/* 상단 - 왼쪽 점수 명세서 / 오른쪽 이름 입력. 결과 단계(등록/건너뛰기 완료)에서는
+   render/leaderboardPanel.js가 이 구획 전체를 hidden 처리해서 순위표만 남긴다. */
+#leaderboard-top {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center; /* 부모가 이제 stretch라 이 패널 스스로 세로 중앙 정렬을 챙겨야 함 */
-  gap: 10px;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 48px;
   flex-shrink: 0;
-  text-align: center;
 }
 
-#leaderboard-right {
-  flex: 1;
-  min-width: 0;
-  min-height: 0; /* flex 자식의 기본 min-height:auto가 내용 크기 밑으로 못 줄어들게 막는 걸 해제 - 없으면 아래 overflow-y:auto가 무력화됨 */
-  max-width: 460px;
-  align-self: stretch;
-  display: flex;
-  align-items: stretch; /* 목록(ol)이 이 영역 높이에 꽉 차도록 - 그래야 목록 자체의 overflow-y:auto가 제대로 동작함 */
+#leaderboard-top.hidden {
+  display: none;
 }
 
 #leaderboard-form {
@@ -158,16 +124,24 @@ body {
   gap: 8px;
 }
 
-#leaderboard-form.hidden {
-  display: none;
-}
-
 /* 등록할지 판단하려면 기존 순위표와 비교할 기준이 눈에 바로 보여야 함 - 최종 점수는 크고
    강조된 색으로, 그 아래 항목별 내역/가산점 세부는 부가 정보라 작고 옅게 표시 */
 #leaderboard-my-score {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  text-align: left;
+  padding-top: 4px; /* 오른쪽 이름 입력 폼의 첫 줄("이름을 입력하세요")과 위쪽 높이를 맞춤 */
+}
+
+/* 하단 - 순위표가 남는 세로 공간을 전부 차지 */
+#leaderboard-bottom {
+  flex: 1;
+  min-height: 0; /* flex 자식의 기본 min-height:auto가 내용 크기 밑으로 못 줄어들게 막는 걸 해제 - 없으면 아래 overflow-y:auto가 무력화됨 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 #my-score-total {
@@ -308,6 +282,21 @@ body {
   font-size: 14px;
 }
 
+/* 테스트 모드 전용 여의주 디버그 버튼(1/2/3) - #touch-actions(2x2, SPACE가 커서 자리가
+   꽉 참) 위로 별도 줄을 하나 더 만들어 가로로 배치한다. 테스트 모드가 아닐 때는
+   js/input/touchControls.js의 setTouchActionButtons가 display:none으로 숨긴다. */
+#touch-debug {
+  position: absolute;
+  right: 16px;
+  bottom: 200px; /* #touch-actions(bottom:16px, height:176px) 바로 위에 8px 띄워서 배치 */
+  width: 176px;
+  height: 52px;
+}
+
+#touch-1 { left: 0;   top: 0; }
+#touch-2 { left: 62px; top: 0; }
+#touch-3 { left: 124px; top: 0; }
+
 #leaderboard-actions button:hover {
   background: #3a3a3a;
 }
@@ -315,9 +304,11 @@ body {
 #leaderboard-list {
   list-style: none;
   width: 100%;
-  min-height: 0; /* 위 #leaderboard-right와 같은 이유 - 이 요소 자체도 flex 자식이라 필요 */
+  max-width: 600px; /* 패치5로 폭이 넓어졌지만, 한 줄이 과하게 늘어지지 않게 적당히 제한 */
+  min-height: 0; /* flex 자식(#leaderboard-bottom)의 기본 min-height:auto가 내용 크기 밑으로
+                    못 줄어들게 막는 걸 해제 - 없으면 아래 overflow-y:auto가 무력화됨 */
   /* max-height:60vh였으면 화면(뷰포트) 기준이라 캔버스 실제 크기와 무관하게 넘칠 수 있었음 -
-     이제 부모(#leaderboard-right)가 캔버스 높이에 맞게 잡혀 있으므로 그 안에서만 스크롤되면 됨 */
+     이제 부모(#leaderboard-bottom)가 캔버스 높이에 맞게 잡혀 있으므로 그 안에서만 스크롤되면 됨 */
   overflow-y: auto;
 }
 

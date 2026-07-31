@@ -1,29 +1,41 @@
-import { GRID_W, GRID_H, CELL_SIZE } from '../config/constants.js';
 import { drawIcon } from './statusIcons.js';
 import { versionLayer } from './layers.js';
+import { toScreenX, toScreenY, screenCellSize, getViewportPixelSize } from '../core/gridMath.js';
+import { STATUS_PANEL_WIDTH } from '../config/constants.js';
+
+// 타이틀/일시정지/게임오버 등 화면 전체를 채우는 오버레이들은 필드 전체 크기(GRID_W*CELL_SIZE)가
+// 아니라 뷰포트(실제 캔버스) 픽셀 크기를 써야 한다 - 필드가 카메라 뷰포트보다 커지면 이 둘이
+// 달라진다(core/gridMath.js의 getViewportPixelSize 참고).
 
 // 타이틀 화면은 아직 world가 시작 전이라 그 위에 겹쳐 그리는 오버레이가 아니라
 // 화면 전체를 단독으로 채운다 — 배경색은 layers.js의 backgroundLayer와 동일하게 맞춘다.
 export function renderTitleScreen(ctx) {
-  const cw = GRID_W * CELL_SIZE;
-  const ch = GRID_H * CELL_SIZE;
+  const { width: cw, height: ch } = getViewportPixelSize();
 
   ctx.fillStyle = '#111111';
   ctx.fillRect(0, 0, cw, ch);
+
+  // 타이틀 화면에서는 statusPanel.setMerged(true)로 좌측 상태창 캔버스와 이 게임 캔버스가
+  // 경계 없이 이어져 하나의 넓은 화면처럼 보인다(states/titleState.js 참고) - 하지만 이
+  // ctx는 여전히 게임 캔버스(오른쪽 부분, 너비 cw)만의 좌표계라, cw/2로 그리면 텍스트가
+  // "합쳐진 전체 화면"이 아니라 "게임 캔버스만의 중앙"(왼쪽 상태창 폭만큼 오른쪽으로
+  // 치우친 위치)에 그려진다. 합쳐진 전체 폭(STATUS_PANEL_WIDTH + cw)의 중앙이 이 게임
+  // 캔버스 좌표계에서 어디에 해당하는지 역산한 값이 centerX다.
+  const centerX = (cw - STATUS_PANEL_WIDTH) / 2;
 
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = `bold ${Math.floor(ch * 0.12)}px CintamaniFont, monospace`;
-  ctx.fillText('CINTAMANI', cw / 2, ch / 2);
+  ctx.fillText('CINTAMANI', centerX, ch * 0.4);
 
   // 세 선택지를 하나의 덩어리로 보고 위아래로 통통 튀는 느낌을 준다 — 개별 줄마다
   // 따로 튀면 줄 사이 간격이 흔들려 보이므로, 같은 오프셋을 함께 적용한다.
   const bounce = Math.sin(performance.now() / 200) * (ch * 0.02);
   ctx.font = `${Math.floor(ch * 0.035)}px CintamaniFont, monospace`;
-  ctx.fillText('ENTER - GAME START', cw / 2, ch * 0.72 + bounce);
-  ctx.fillText('T - TEST MODE', cw / 2, ch * 0.79 + bounce);
-  ctx.fillText('L - LEADERBOARD', cw / 2, ch * 0.86 + bounce);
+  ctx.fillText('ENTER - GAME START', centerX, ch * 0.62 + bounce);
+  ctx.fillText('T - TEST MODE', centerX, ch * 0.69 + bounce);
+  ctx.fillText('L - LEADERBOARD', centerX, ch * 0.76 + bounce);
 
   versionLayer(ctx);
 }
@@ -32,8 +44,7 @@ export function renderTitleScreen(ctx) {
 // leaderboardPanel.js의 DOM 오버레이가 그 위에 겹쳐 그린다. 캔버스 쪽은 어두운
 // 배경 + 짧은 안내 문구만 담당한다.
 export function renderLeaderboardViewBackground(ctx) {
-  const cw = GRID_W * CELL_SIZE;
-  const ch = GRID_H * CELL_SIZE;
+  const { width: cw, height: ch } = getViewportPixelSize();
   ctx.fillStyle = '#111111';
   ctx.fillRect(0, 0, cw, ch);
   ctx.fillStyle = '#ffffff';
@@ -48,8 +59,7 @@ export function renderLeaderboardViewBackground(ctx) {
 // 일시정지 오버레이 - P/ESC로 states/playingState.js가 토글하는 paused 플래그가 true인 동안
 // 매 프레임 마지막 게임 화면 위에 겹쳐 그린다(게임오버 오버레이와 같은 어둡게+텍스트 방식).
 export function renderPauseOverlay(ctx) {
-  const cw = GRID_W * CELL_SIZE;
-  const ch = GRID_H * CELL_SIZE;
+  const { width: cw, height: ch } = getViewportPixelSize();
   ctx.fillStyle = 'rgba(0,0,0,0.55)';
   ctx.fillRect(0, 0, cw, ch);
   ctx.fillStyle = '#ffffff';
@@ -76,8 +86,7 @@ export function renderPauseOverlay(ctx) {
 // 왼쪽 정렬로 세로 배치한다 - 제목만 도드라지고 설명/안내문구는 상대적으로 너무 작다는
 // 피드백으로, 설명/안내문구 글씨는 각각 기존 대비 20% 키웠다(제목 크기는 그대로).
 export function renderTutorialPopup(ctx, { icon, iconColor, title, lines }) {
-  const cw = GRID_W * CELL_SIZE;
-  const ch = GRID_H * CELL_SIZE;
+  const { width: cw, height: ch } = getViewportPixelSize();
 
   ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
   ctx.fillRect(0, 0, cw, ch);
@@ -154,12 +163,14 @@ export function renderTutorialPopup(ctx, { icon, iconColor, title, lines }) {
 
 // 비늘파동 충전 게이지 - 스페이스바를 누르고 있는 동안 뱀 머리 바로 위에 작게 그린다.
 // ratio: 0~1(충전 진행률), full: 완전 충전 여부(true면 색이 바뀜 - 이 상태에서 손을 떼야 발사됨).
-export function renderChargeGauge(ctx, headX, headY, ratio, full) {
-  const C = CELL_SIZE;
+// headX/headY는 격자 좌표 - 카메라를 거쳐야 화면 어디에 그릴지 알 수 있다(다른 세계 공간
+// 그리기와 동일한 원칙 - render/layers.js 참고).
+export function renderChargeGauge(ctx, headX, headY, ratio, full, camera) {
+  const C = screenCellSize();
   const gaugeW = C * 2;
   const gaugeH = 3;
-  const x = headX * C + C / 2 - gaugeW / 2;
-  const y = headY * C - gaugeH - 3;
+  const x = toScreenX(headX, camera) + C / 2 - gaugeW / 2;
+  const y = toScreenY(headY, camera) - gaugeH - 3;
 
   ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
   ctx.fillRect(x - 1, y - 1, gaugeW + 2, gaugeH + 2);
@@ -169,8 +180,7 @@ export function renderChargeGauge(ctx, headX, headY, ratio, full) {
 }
 
 export function renderGameOverOverlay(ctx) {
-  const cw = GRID_W * CELL_SIZE;
-  const ch = GRID_H * CELL_SIZE;
+  const { width: cw, height: ch } = getViewportPixelSize();
   ctx.fillStyle = 'rgba(0,0,0,0.55)';
   ctx.fillRect(0, 0, cw, ch);
   ctx.fillStyle = '#ffffff';

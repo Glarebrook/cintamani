@@ -8,7 +8,7 @@ export function getSpeedLevel(tickMs) {
   return Math.round((MAX_TICK_MS - tickMs) / FOOD_SPEED_DELTA_MS);
 }
 
-// 화면 표시 전용 - render/hud.js와 render/statusPanel.js가 같은 표시 숫자를 쓰도록 공유한다.
+// 화면 표시 전용 - render/statusPanel.js가 이 표시 숫자를 쓴다.
 // 점수 계산에는 이 보정치가 안 들어간다(getSpeedLevel 쪽 주석 참고).
 export function getDisplaySpeedLevel(tickMs) {
   return getSpeedLevel(tickMs) + SPEED_LEVEL_DISPLAY_OFFSET;

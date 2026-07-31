@@ -1,15 +1,63 @@
 export const CELL_SIZE = 8;      // 격자 1칸 = 8픽셀 (정사각형 보장)
-export const GRID_W   = 100;     // 필드 가로 격자 수
-export const GRID_H   = 40;      // 필드 세로 격자 수
-export const STATUS_PANEL_HEIGHT = 80; // 하단 상태창 캔버스 높이(px) - 너비는 게임 캔버스와 동일(GRID_W*CELL_SIZE). 아이콘을 가로로 한 줄 배치로 바꾸면서 세로 여백이 남아 100에서 축소
+// 카메라 도입(VIEWPORT_COLS/ROWS 참고) 전에는 필드 전체가 한 화면에 다 보여야 해서
+// 100x40으로 작았다 - 이제 카메라가 그 안을 스크롤하므로 필드를 키움. 정확한 값은
+// 플레이하면서(스폰 밀도 등) 계속 조정 예정 - 일단 뷰포트(50x20)의 4배로 시작.
+export const GRID_W   = 200;     // 필드 가로 격자 수
+export const GRID_H   = 80;      // 필드 세로 격자 수
+
+// 필드 가장자리를 감싸는 "벽" - 검은색 대신 짙은 회색으로 보여서 눈에 띄고, 뱀은 여기로
+// 이동할 수 없다(실제 충돌 판정 경계는 이 벽의 안쪽 면 - entities/snake.js의
+// isWallCollision, 스폰 로직도 이 안쪽까지만 사용). PLAYABLE_MIN/MAX는 실제로 뱀이 있을 수
+// 있는 칸의 범위(MAX는 배타적 상한)다.
+export const FIELD_WALL_THICKNESS = 10;
+export const FIELD_WALL_COLOR = '#333333';
+// 회색 벽과 검은 필드 사이 경계를 명확히 구분하기 위한 외곽선(패치1) - 배경색 차이만으로는
+// 잘 안 보인다는 피드백으로 추가. render/layers.js의 fieldBorderLayer가 그린다.
+export const FIELD_WALL_BORDER_COLOR = '#999999';
+export const FIELD_WALL_BORDER_WIDTH = 2;
+export const PLAYABLE_MIN_X = FIELD_WALL_THICKNESS;
+export const PLAYABLE_MIN_Y = FIELD_WALL_THICKNESS;
+export const PLAYABLE_MAX_X = GRID_W - FIELD_WALL_THICKNESS;
+export const PLAYABLE_MAX_Y = GRID_H - FIELD_WALL_THICKNESS;
+
+// 카메라/뷰포트 - 화면(게임 캔버스)에 "한 번에 보이는" 칸 수와 확대 배율. GRID_W/GRID_H(필드
+// 전체 크기)와는 별개 개념이다 - 필드가 뷰포트보다 크면 core/camera.js가 그 안을 스크롤한다.
+// 좌측 상태창(세로 사이드바) + 우측 플레이 화면 레이아웃으로 바꾸면서, 게임 캔버스 자체가
+// 대략 4:3으로 보이도록 잡았다 - 캔버스 픽셀 크기는 VIEWPORT_COLS*CELL_SIZE*CAMERA_ZOOM으로
+// 결정되므로, "화면 배율(CAMERA_ZOOM)만 80%로 낮추고 그만큼 VIEWPORT_COLS/ROWS를 늘려서"
+// 캔버스 크기(768x576, 4:3)는 그대로 유지하면서 뱀/적은 더 작게, 시야는 더 넓게 보이도록
+// 했다(패치3) - 48*8*2=768과 60*8*1.6=768이 같은 것처럼, 두 상수를 반비례로 맞춘 것.
+export const VIEWPORT_COLS = 60;
+export const VIEWPORT_ROWS = 45;
+export const CAMERA_ZOOM = 1.6;
+// 데드존(화면 정중앙 기준 이 비율 안쪽으로는 카메라가 안 움직임) - 0.4면 사용자 기준
+// "정중앙 0, 모서리 100" 스케일의 40 지점부터 카메라가 반응하기 시작한다는 뜻과 같다.
+export const CAMERA_DEADZONE_RATIO = 0.4;
+// 카메라가 목표 지점으로 얼마나 빨리 다가가는지(지수 감쇠 계수, 클수록 더 빠르게 따라붙음).
+export const CAMERA_FOLLOW_SPEED = 8;
+
+// 좌측 상태창 캔버스 너비(px, 고정) - 높이는 이제 고정값이 아니라 게임 캔버스와 항상 같게
+// (getViewportPixelSize().height) main.js가 맞춘다 - 두 캔버스가 나란히 붙어 하나의 세로
+// 프레임처럼 보이려면 높이가 반드시 일치해야 한다. 상/하로 쌓이던 STATUS/KILL STACK/
+// CINTAMANI 3개 열은 이제 위→아래로 쌓이는 구획(section)이 됐다(render/statusPanel.js 참고).
+export const STATUS_PANEL_WIDTH = 240;
+
+// 상태창 맨 위(점수+미니맵) 구획에 들어가는 미니맵(render/minimap.js) 크기 - 필드 전체를
+// 이 픽셀 크기로 축소해서 보여준다. 실제 화면 보면서 조정 예정 - 시작 값.
+export const MINIMAP_WIDTH_PX = 216;
+export const MINIMAP_HEIGHT_PX = 130;
+export const MINIMAP_DOT_SIZE = 2; // 미니맵에 찍는 적/아이템/뱀 점 하나의 픽셀 크기
 export const TICK_MS  = 120;     // 뱀 이동 간격 (ms)
 export const SNAKE_INITIAL_LENGTH = 3; // 기본 모드 시작 길이
 export const TEST_MODE_INITIAL_LENGTH = 50; // 테스트 모드 시작 길이
 export const TEST_MODE_TICK_MS = 120; // 테스트 모드 시작 이동 간격 (ms) - 화면 표시 속도가 20이 되는 값(120 = TICK_MS와 동일)
 export const TEST_MODE_CINTAMANI_COUNT = 10; // 테스트 모드 시작 시 여의주 색상별 보유 개수(해금 상태로 시작)
-export const FOOD_SPAWN_MIN_MS = 3000; // 무작위 먹이 등장 최소 간격(ms) - 매번 재추첨
-export const FOOD_SPAWN_MAX_MS = 7000; // 무작위 먹이 등장 최대 간격(ms)
-export const FOOD_MAX_COUNT = 5; // 무작위 타이머로 유지되는 화면 최대 먹이 수 - 처치/포획 보상 스폰은 이 상한과 무관
+// 밸런스 재조정: 직전 패치(3000~7000 -> 1500~3500, 50% 빨리)가 너무 빠르다는 피드백으로,
+// 그 기준에서 다시 50% 느리게(간격 x1.5) 되돌렸다(1500~3500 -> 2250~5250). 최초 기본값
+// (3000~7000)으로의 완전 복귀는 아니라는 점에 주의 - "지금보다 50%"라는 요청 그대로 반영.
+export const FOOD_SPAWN_MIN_MS = 2250; // 무작위 먹이 등장 최소 간격(ms) - 매번 재추첨
+export const FOOD_SPAWN_MAX_MS = 5250; // 무작위 먹이 등장 최대 간격(ms)
+export const FOOD_MAX_COUNT = 5; // 무작위 타이머로 유지되는 화면 최대 먹이 수(밸런스 재조정: 10->5, 직전 값의 절반) - 처치/포획 보상 스폰은 이 상한과 무관
 export const FOOD_BASE_GROWTH = 1; // 기본(초록) 먹이 1개당 성장 칸 수 — 다른 먹이의 배율 계산 기준
 export const FOOD_SPEED_DELTA_MS = 5; // 노랑/갈색 먹이가 뱀 이동 간격(ms)을 바꾸는 양
 export const MIN_TICK_MS = 40; // 속도 먹이를 아무리 먹어도 이동 간격이 이 아래로는 안 내려감
@@ -18,13 +66,14 @@ export const ATTACK_UP_DELTA = 1; // 주황 먹이 1개당 독침(투사체) 공
 export const ATTACK_UP_SCALE_WAVE_DELTA = 3; // 주황 먹이 1개당 비늘파동 공격력 증가량 - 독침(ATTACK_UP_DELTA)과 별도 수치
 export const ENEMY_SPAWN_MIN_MS = 3000; // 적 최소 생성 간격 (ms)
 export const ENEMY_SPAWN_MAX_MS = 7000; // 적 최대 생성 간격 (ms)
-// 필드에 이 수 이하로 있을 때는 생성 속도에 영향 없음 - 이 수를 "초과"하는 순간부터(4마리째부터)
+// 필드에 이 수 이하로 있을 때는 생성 속도에 영향 없음 - 이 수를 "초과"하는 순간부터(7마리째부터)
 // 매 초과 마리당 생성 간격이 ENEMY_SPAWN_SLOWDOWN_FACTOR배씩 지수적으로 늘어난다. 예전에는
 // 이 수에 도달하면 생성 자체가 완전히 멈추는 하드 캡이었지만, 그러면 오래 버틴 판이 "적 없는
 // 무한 안전지대"가 돼버려서 - 생성을 막지 않고 대신 점점 드물어지게만 바꿨다(enemyManager.js
-// _randomSpawnDelay 참고).
-export const ENEMY_SPAWN_SLOWDOWN_THRESHOLD = 3;
-export const ENEMY_SPAWN_SLOWDOWN_FACTOR = 2; // 임계치 초과 1마리당 생성 간격 배율
+// _randomSpawnDelay 참고). 밸런스패치: 임계치를 3->6마리로 올려 6마리까지는 감속 없이 등장하게
+// 하고, 배율도 2->1.6(20% 완화)로 낮춰 6마리를 넘긴 뒤의 감속도 이전보다 덜 가파르게 했다.
+export const ENEMY_SPAWN_SLOWDOWN_THRESHOLD = 6;
+export const ENEMY_SPAWN_SLOWDOWN_FACTOR = 1.6; // 임계치 초과 1마리당 생성 간격 배율
 export const ENEMY_MIN_SPAWN_DISTANCE_FROM_HEAD = 8; // 적이 뱀 머리로부터 이 칸(체비셰프 거리) 이상 떨어진 곳에만 생성됨 - 너무 가까이 생성돼 반응할 틈 없이 죽는 것 방지
 export const PROJECTILE_SPEED = 48; // 투사체 이동 속도 (칸/초) - 원래 60에서 20% 감소
 export const PROJECTILE_DAMAGE = 1; // 투사체 공격력
@@ -57,6 +106,7 @@ export const LONG_SNAKE_UNLOCK_LENGTH = 20; // 뱀 길이가 이 이상이어야
 // (예: 원래 3번적이 갖던 보라 먹이 스택 보상이 1번적으로 옮겨감), 이름을 트리거 적이 아니라
 // 보상 자체 기준으로 짓는다.
 export const PURPLE_FOOD_KILL_STACK_THRESHOLD = 5; // 처치 스택이 이 수에 도달할 때마다 보라 먹이 1개 생성
+export const PURPLE_FOOD_GROWTH_AMOUNT = 10; // 보라 먹이 1개 섭취 시 늘어나는 고정 길이(칸) - 예전엔 "현재 길이의 3배"였다가 고정값으로 변경
 export const ORANGE_FOOD_DROP_CHANCE = 0.1; // 포획 처치 시 이 확률로 주황 먹이 생성
 
 export const CHASER_HP = 10; // 3번적(추격형) 기본 체력
@@ -107,7 +157,7 @@ export const SCORE_POPUP_LIFE_MS = 700; // 아이템/처치 시 "+20" 팝업이 
 export const SCORE_POPUP_RISE_SPEED = 2; // 팝업이 위로 떠오르는 속도 (칸/초)
 
 // 화면에 보여지는 뱀속도 시작값을 16→20으로 맞추기 위한 표시 전용 보정치 - 점수 계산에는 안 쓰고
-// hud.js가 화면에 그릴 때만 더한다 (내부 속도 단계 자체가 바뀌는 건 아님)
+// render/statusPanel.js가 화면에 그릴 때만 더한다 (내부 속도 단계 자체가 바뀌는 건 아님)
 export const SPEED_LEVEL_DISPLAY_OFFSET = 4;
 
 // 리더보드 API - api/leaderboard.php와 항상 짝을 맞춘다. 상대경로라서 NAS 배포 경로가 어디든 동작.
@@ -141,7 +191,7 @@ export const BLUE_CINTAMANI_RAIN_PARTICLE_LIFE_MS = 500; // 빗방울 한 개가
 
 // 화면 우측 하단에 표시되는 빌드 표시 — index.html의 캐시 무효화 ?v= 값과 항상 같이 올린다.
 // 코드를 바꿀 때마다 갱신해서, 새로고침한 화면이 실제로 최신 코드인지 눈으로 바로 확인할 수 있게 한다.
-export const BUILD_VERSION = '20260731-17';
+export const BUILD_VERSION = '20260731-22';
 
 // core/updateCheck.js가 대기(타이틀) 화면에서 이 간격마다 index.html을 다시 받아와 서버의
 // 최신 버전과 비교한다 - NAS에 새 파일을 올려도 이미 열려 있는 탭은 스스로 알 방법이 없어서

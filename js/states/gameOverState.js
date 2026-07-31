@@ -2,10 +2,9 @@ import { Actions } from '../input/actions.js';
 import { render as renderScene } from '../render/renderer.js';
 import { renderGameOverOverlay } from '../render/overlays.js';
 import { fetchLeaderboard, submitScore } from '../services/leaderboardApi.js';
-import { getTotalScore } from '../core/score.js';
 import { setTouchActionButtons } from '../input/touchControls.js';
 
-export function createGameOverState({ world, ctx, hud, statusPanel, panel, onRestart }) {
+export function createGameOverState({ world, ctx, statusPanel, panel, onRestart }) {
   let survivalMs = 0;
   let scoreBreakdown = null;
   let lastEntries = [];
@@ -90,13 +89,6 @@ export function createGameOverState({ world, ctx, hud, statusPanel, panel, onRes
     render() {
       renderScene(ctx, world);
       renderGameOverOverlay(ctx);
-      hud.update({
-        size: world.snake.segments.length,
-        attack: world.stats.attackDamage,
-        snakeSpeed: world.stats.tickMs,
-        survivalSeconds: survivalMs / 1000,
-        score: getTotalScore(world),
-      });
       statusPanel.render(world);
     },
   };

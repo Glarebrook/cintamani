@@ -15,11 +15,11 @@ function formatTimestamp(ts) {
 }
 
 // 게임오버 화면의 이름 입력 + 리더보드 표시, 그리고 타이틀 화면에서 진입하는 순위 열람 전용
-// 화면까지 공유하는 DOM 컨트롤러 — hud.js와 같은 이유로 캔버스 렌더러와 분리한다. 실제
+// 화면까지 공유하는 DOM 컨트롤러 — 캔버스 렌더러와는 분리된 별도 DOM 계층이다. 실제
 // <input>을 쓰는 이 코드베이스 최초의 텍스트 입력 UI(한글 이름을 IME로 정상 입력하려면
 // 캔버스 자체 구현이 아니라 진짜 <input>이 필요).
 //
-// game.js가 이 패널을 딱 한 번만 만들어서(hud와 동일한 패턴) gameOverState와
+// game.js가 이 패널을 딱 한 번만 만들어서(statusPanel과 동일한 패턴) gameOverState와
 // leaderboardViewState 둘 다에 넘겨준다 — DOM 엘리먼트가 하나뿐이라 두 번 생성하면
 // submit/click 리스너가 중복 등록된다. 제출/건너뛰기 핸들러는 생성 시점이 아니라
 // setHandlers()로 나중에 꽂는다 - 실제로 폼을 보여주는 건 gameOverState뿐이고
@@ -27,6 +27,11 @@ function formatTimestamp(ts) {
 // 잘못 걸려도 사용자가 트리거할 방법이 없지만), 그래도 소유권을 명확히 하기 위함이다.
 export function createLeaderboardPanel() {
   const overlay = document.getElementById('leaderboard-overlay');
+  // 패치5: 점수 명세서+이름 입력 폼을 묶는 상단 구획 전체를 한 덩어리로 보이거나 숨긴다 -
+  // 예전엔 form 하나만 숨겼었는데(점수 명세서는 그 안에 같이 들어있었음), 이제 점수 명세서와
+  // 입력 폼이 상단에서 좌/우로 나뉜 형제 요소라 form만 숨기면 점수 명세서가 결과 단계에도
+  // 계속 남아있게 된다.
+  const topSection = document.getElementById('leaderboard-top');
   const form = document.getElementById('leaderboard-form');
   const myScoreTotal = document.getElementById('my-score-total');
   const myScoreBreakdown = document.getElementById('my-score-breakdown');
@@ -96,7 +101,7 @@ export function createLeaderboardPanel() {
     // 그 경우 자리를 비워둔다(showResultPhase는 별개로 폼 자체를 숨기므로 이 텍스트도 같이
     // 안 보이게 됨).
     showEntryPhase(entries, survivalMs, scoreBreakdown) {
-      form.classList.remove('hidden');
+      topSection.classList.remove('hidden');
       footer.textContent = '';
       if (scoreBreakdown) {
         const r = Math.round;
@@ -125,7 +130,7 @@ export function createLeaderboardPanel() {
     // 결과 단계(게임오버 후 등록/건너뛰기 완료)와 순위 열람 전용 화면(타이틀에서 진입)이
     // 시각적으로 동일해서 - 폼 숨김 + 목록 + "ENTER - 타이틀로" - 하나로 공유한다.
     showResultPhase(entries, mineIndex) {
-      form.classList.add('hidden');
+      topSection.classList.add('hidden');
       footer.textContent = 'ENTER - 타이틀로';
       renderList(entries, mineIndex);
     },

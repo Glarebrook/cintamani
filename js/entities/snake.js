@@ -1,5 +1,6 @@
 import {
-  GRID_W, GRID_H, SNAKE_INITIAL_LENGTH, ITEM_FLASH_DURATION_MS, ITEM_FLASH_STAGGER_MS,
+  GRID_W, GRID_H, PLAYABLE_MIN_X, PLAYABLE_MIN_Y, PLAYABLE_MAX_X, PLAYABLE_MAX_Y,
+  SNAKE_INITIAL_LENGTH, ITEM_FLASH_DURATION_MS, ITEM_FLASH_STAGGER_MS,
 } from '../config/constants.js';
 
 export class Snake {
@@ -13,6 +14,10 @@ export class Snake {
       initialSegments.push({ x: cx - i, y: cy });
     }
     this.segments = initialSegments;
+    // 직전 틱의 segments 스냅샷 - render/layers.js의 snakeLayer가 이걸 기준으로 현재
+    // segments까지 부드럽게 보간해서 그린다(패치2: 이동이 한 칸씩 "뚝뚝" 끊겨 보이던 문제).
+    // 시작 시점엔 이동이 없었으니 segments와 동일하게 맞춰둔다(보간해도 차이가 없음).
+    this.prevSegments = initialSegments.map(s => ({ x: s.x, y: s.y }));
     this.dir = { x: 1, y: 0 };
     this.growQueue = []; // 성장 대기 위치들 (먹이를 먹은 좌표) — 여러 개를 동시에 기다릴 수 있음
     // 아이템 섭취 시 머리→꼬리로 순차적으로 흘러가며 반짝이는 웨이브 상태.
@@ -26,6 +31,9 @@ export class Snake {
 
   // 한 칸 이동 — 머리 추가, 꼬리 제거 (성장 처리는 checkGrowth에서)
   step(dir) {
+    // 실제로 옮기기 전에 지금 위치를 스냅샷으로 남겨둔다 - 이번 틱 동안의 보간 시작점(0%
+    // 지점)이 된다(패치2, 위 prevSegments 주석 참고).
+    this.prevSegments = this.segments.map(s => ({ x: s.x, y: s.y }));
     this.dir = dir;
     this.segments.unshift({ x: this.head.x + dir.x, y: this.head.y + dir.y });
     this.segments.pop();
@@ -84,9 +92,12 @@ export class Snake {
     return this.segments.some(s => s.x === x && s.y === y);
   }
 
+  // 실제 필드 경계(0~GRID_W)가 아니라, 그 안쪽의 "벽"(짙은 회색으로 그려지는 FIELD_WALL_
+  // THICKNESS칸 두께 테두리) 안쪽 면에 닿으면 충돌 - render/layers.js의 fieldBorderLayer가
+  // 그리는 회색 영역과 정확히 같은 경계를 쓴다.
   isWallCollision() {
     const h = this.head;
-    return h.x < 0 || h.x >= GRID_W || h.y < 0 || h.y >= GRID_H;
+    return h.x < PLAYABLE_MIN_X || h.x >= PLAYABLE_MAX_X || h.y < PLAYABLE_MIN_Y || h.y >= PLAYABLE_MAX_Y;
   }
 
   isSelfCollision() {

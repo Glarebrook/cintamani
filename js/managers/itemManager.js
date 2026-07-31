@@ -1,4 +1,8 @@
-import { GRID_W, GRID_H, FOOD_SPAWN_MIN_MS, FOOD_SPAWN_MAX_MS, FOOD_MAX_COUNT, CELL_SIZE } from '../config/constants.js';
+import {
+  PLAYABLE_MIN_X, PLAYABLE_MIN_Y, PLAYABLE_MAX_X, PLAYABLE_MAX_Y,
+  FOOD_SPAWN_MIN_MS, FOOD_SPAWN_MAX_MS, FOOD_MAX_COUNT,
+} from '../config/constants.js';
+import { toScreenX, toScreenY, screenCellSize } from '../core/gridMath.js';
 import { ItemTypes } from '../content/items/index.js';
 
 export class ItemManager {
@@ -84,8 +88,8 @@ export class ItemManager {
     }
 
     for (let i = 0; i < 100; i++) {
-      const x = Math.floor(Math.random() * GRID_W);
-      const y = Math.floor(Math.random() * GRID_H);
+      const x = PLAYABLE_MIN_X + Math.floor(Math.random() * (PLAYABLE_MAX_X - PLAYABLE_MIN_X));
+      const y = PLAYABLE_MIN_Y + Math.floor(Math.random() * (PLAYABLE_MAX_Y - PLAYABLE_MIN_Y));
       const key = `${x},${y}`;
 
       if (!occupied.has(key)) return { x, y };
@@ -102,18 +106,21 @@ export class ItemManager {
     return eaten;
   }
 
-  render(ctx) {
+  render(ctx, camera) {
+    const C = screenCellSize();
     for (const food of this.foods) {
       const def = ItemTypes.get(food.type);
+      const x = toScreenX(food.x, camera);
+      const y = toScreenY(food.y, camera);
       ctx.fillStyle = def.color;
-      ctx.fillRect(food.x * CELL_SIZE, food.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+      ctx.fillRect(x, y, C, C);
 
       if (def.overlayText) {
         ctx.fillStyle = '#ffffff';
-        ctx.font = `${Math.max(4, Math.floor(CELL_SIZE * 0.9))}px CintamaniFont, monospace`;
+        ctx.font = `${Math.max(4, Math.floor(C * 0.9))}px CintamaniFont, monospace`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(def.overlayText, food.x * CELL_SIZE + CELL_SIZE / 2, food.y * CELL_SIZE + CELL_SIZE / 2);
+        ctx.fillText(def.overlayText, x + C / 2, y + C / 2);
       }
     }
   }

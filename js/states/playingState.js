@@ -16,6 +16,7 @@ import { chaserEnemy } from '../content/enemies/chaser.js';
 import { CintamaniTypes } from '../content/cintamani/index.js';
 import { matchesPattern } from '../algorithms/patternMatch.js';
 import { setTouchActionButtons } from '../input/touchControls.js';
+import { updateCamera } from '../core/camera.js';
 import {
   PROJECTILE_SPEED, PARTICLE_BURST_COUNT, PARTICLE_SPEED, PARTICLE_LIFE_MS, ENEMY_SCALE,
   SCORE_PER_SECOND, SCORE_PER_ITEM, SCORE_PER_KILL_CAPTURE, SCORE_PER_KILL_PROJECTILE,
@@ -23,7 +24,7 @@ import {
   SCALE_WAVE_FLASH_MS,
 } from '../config/constants.js';
 import { getSpeedLevel } from '../core/speedLevel.js';
-import { getTotalScore, getScoreBreakdown } from '../core/score.js';
+import { getScoreBreakdown } from '../core/score.js';
 
 // 여의주(cintamani) 해금/보상/패턴 발동 - 매 틱 onTick()이 호출한다. world만 있으면 되고
 // playingState의 다른 지역 상태(paused 등)는 필요 없어서 모듈 최상위 함수로 뺐다(테스트에서
@@ -72,7 +73,7 @@ export function updateCintamani(world) {
 
 // 이동 → 벽 → 포획 메커니즘 → 자기충돌(포획 시 눈감아줌) → 적충돌 → 먹이 → 성장 → 적 스폰 타이머,
 // V1의 Game._tick() 순서를 그대로 유지한다. 순서를 바꾸면 포획 시 통과 동작이 깨진다.
-export function createPlayingState({ world, hud, ctx, statusPanel }) {
+export function createPlayingState({ world, ctx, statusPanel }) {
   let pendingDirection = null;
   // 포획이 일어난 틱에 뱀 머리가 항상 몸과 정확히 겹치는 건 아니다 — 빈 칸으로 이동하며
   // 고리가 자연스럽게 닫히는 경우도 많다. 그래서 "봐주기"를 그 순간 한 틱으로 한정하지 않고,
@@ -88,6 +89,13 @@ export function createPlayingState({ world, hud, ctx, statusPanel }) {
   let activeTutorial = null;
   // 비늘파동 충전 시작 시각(performance.now()) - null이면 충전 중이 아님.
   let chargeStartAt = null;
+  // 이번 틱이 시작된 이후 지난 시간(ms) - onFrame마다 dt만큼 누적되고 onTick 시작 시 0으로
+  // 리셋된다. world.tickProgress(0~1)를 여기서 계산해 render()가 뱀 이동을 부드럽게 보간할 수
+  // 있게 한다(패치2, entities/snake.js의 prevSegments 참고). core/loop.js가 매 프레임
+  // onFrame(dt) -> (해당하면) onTick() -> onRender() 순으로 부르므로, 틱이 막 발생한 바로 그
+  // 프레임에는 onTick의 리셋이 onFrame의 누적보다 나중에 일어나 progress가 정확히 0으로
+  // 맞춰진 채로 렌더된다.
+  let tickElapsedMs = 0;
 
   // P 또는 ESC로 토글. 재개 시 멈춰있던 시간만큼 world.startTime을 뒤로 밀어서, 생존시간/점수
   // 계산(performance.now() - world.startTime 형태로 쓰는 die()의 survivalMs, render()의
@@ -241,6 +249,10 @@ export function createPlayingState({ world, hud, ctx, statusPanel }) {
   }
 
   function die() {
+    // 게임오버 정지화면이 보간 도중(칸 사이 어중간한 위치)에 멈추지 않도록, 뱀을 항상 실제
+    // 최종 격자 위치(segments)로 그리게 강제한다 - 패치2 보간의 progress=1이 곧 segments 그
+    // 자체를 의미한다(entities/snake.js의 prevSegments 참고).
+    world.tickProgress = 1;
     // scoreBreakdown은 죽는 바로 그 순간의 스냅샷 - survivalMs와 같은 이유로 payload에 담아
     // 넘긴다(가짜 리더보드 이름 입력 화면이 나중에 world.stats를 다시 읽어서 계산하면, 이미
     // gameOver로 넘어간 뒤 world.reset()이 다시 불렸을 때 엉뚱한 값을 보여줄 수 있다).
@@ -260,6 +272,8 @@ export function createPlayingState({ world, hud, ctx, statusPanel }) {
       paused = false;
       activeTutorial = null;
       chargeStartAt = null;
+      tickElapsedMs = 0;
+      world.tickProgress = 1;
       // 타이틀/리더보드 열람 화면에서 합쳐 보였던 게임 캔버스/상태창을 실제 플레이 중엔
       // 다시 구분해서 보여준다(render/statusPanel.js의 setMerged 참고).
       statusPanel.setMerged(false);
@@ -278,8 +292,13 @@ export function createPlayingState({ world, hud, ctx, statusPanel }) {
         Actions.bind('3', () => triggerCintamaniDebug('green'));
       }
       // 모바일 터치 오버레이 - 플레이 중엔 T/L이 필요 없어지고 대신 ENTER(튜토리얼 팝업
-      // 닫기)/SPACE(무기)/P(일시정지)가 필요해진다.
-      setTouchActionButtons(['touch-enter', 'touch-space', 'touch-p']);
+      // 닫기)/SPACE(무기)/P(일시정지)가 필요해진다. 테스트 모드에선 위 1/2/3 여의주 디버그
+      // 단축키도 같이 눌러볼 수 있어야 하므로 그때만 추가로 보여준다.
+      setTouchActionButtons(
+        world.testMode
+          ? ['touch-enter', 'touch-space', 'touch-p', 'touch-1', 'touch-2', 'touch-3']
+          : ['touch-enter', 'touch-space', 'touch-p']
+      );
     },
     exit() {
       window.removeEventListener('keydown', onSpaceDown);
@@ -294,6 +313,14 @@ export function createPlayingState({ world, hud, ctx, statusPanel }) {
 
     onFrame(dt) {
       if (paused) return; // 발사체 이동/타이머/충돌 판정 등 프레임 단위 로직을 전부 멈춘다
+      // 뱀 이동 보간(패치2) - 이번 틱 시작 후 지난 시간을 쌓아 world.tickProgress(0~1)로
+      // 변환한다. 위 tickElapsedMs 주석 참고.
+      tickElapsedMs += dt;
+      world.tickProgress = Math.min(1, tickElapsedMs / world.stats.tickMs);
+      // 카메라는 매 프레임(틱이 아니라) 갱신해야 부드럽게 보인다 - core/camera.js 참고.
+      // 지금 기본 상수(뷰포트=필드 전체)에서는 항상 (0,0)으로 고정돼 시각적으로 아무 변화가
+      // 없다 - 실제로 스크롤되게 하려면 VIEWPORT_COLS/ROWS/CAMERA_ZOOM만 바꾸면 된다.
+      updateCamera(world.camera, world.snake.head.x, world.snake.head.y, dt / 1000);
       // 생존 점수는 매 프레임 dt만큼씩 조금씩 더해서, 화면에 부드럽게 계속 올라가는 것처럼 보이게 한다.
       world.stats.survivalScore += SCORE_PER_SECOND * (dt / 1000);
       world.itemManager.ensureFood(world.snake, world.enemyManager);
@@ -324,6 +351,11 @@ export function createPlayingState({ world, hud, ctx, statusPanel }) {
 
     onTick() {
       if (paused) return; // 이동/충돌/스폰 타이머 등 틱 단위 로직을 전부 멈춘다
+      // 새 틱이 시작됐으니 보간 시계를 0으로 되돌린다 - 이 프레임의 render()는 core/loop.js
+      // 순서상(onFrame -> onTick -> onRender) 이 리셋 이후에 실행되므로, 방금 이동하기 전
+      // 위치(prevSegments, 즉 이동 전 마지막 모습)를 정확히 progress=0으로 그린다.
+      tickElapsedMs = 0;
+      world.tickProgress = 0;
       const dir = Input.consume();
       if (dir) pendingDirection = dir;
 
@@ -406,22 +438,15 @@ export function createPlayingState({ world, hud, ctx, statusPanel }) {
 
     render() {
       renderScene(ctx, world);
-      // 일시정지/튜토리얼 중엔 pauseStartedAt(멈춘 시점)을 기준으로 고정해서, 화면에 보이는
-      // 생존시간이 실제 시간 따라 계속 올라가지 않게 한다 - 재개하면 startTime이 그만큼
-      // 밀리면서(togglePause/dismissTutorial 참고) 자연스럽게 이어진다.
-      const nowRef = paused ? pauseStartedAt : performance.now();
-      hud.update({
-        size: world.snake.segments.length,
-        attack: world.stats.attackDamage,
-        snakeSpeed: world.stats.tickMs,
-        survivalSeconds: (nowRef - world.startTime) / 1000,
-        score: getTotalScore(world),
-      });
+      // 상단 DOM 통계바(뱀 길이/속도/공격력/생존시간/점수)를 없애고 그 자리까지 플레이
+      // 화면으로 확대하면서, 중복이던 길이/속도/공격력은 하단 상태창(STATUS열)에 그대로
+      // 남아있고 실시간 점수는 상태창 중앙 미니맵 위로 옮겼다(render/statusPanel.js 참고).
+      // 생존시간은 점수만으로도 체감되니 별도 표시 없이 없앴다.
       statusPanel.render(world);
 
       if (chargeStartAt !== null) {
         const ratio = (performance.now() - chargeStartAt) / SCALE_WAVE_CHARGE_MS;
-        renderChargeGauge(ctx, world.snake.head.x, world.snake.head.y, ratio, ratio >= 1);
+        renderChargeGauge(ctx, world.snake.head.x, world.snake.head.y, ratio, ratio >= 1, world.camera);
       }
 
       if (activeTutorial) {

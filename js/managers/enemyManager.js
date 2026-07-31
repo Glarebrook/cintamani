@@ -1,8 +1,10 @@
 import {
-  GRID_W, GRID_H, CELL_SIZE, ENEMY_SCALE, ENEMY_SPAWN_MIN_MS, ENEMY_SPAWN_MAX_MS,
+  GRID_W, GRID_H, PLAYABLE_MIN_X, PLAYABLE_MIN_Y, PLAYABLE_MAX_X, PLAYABLE_MAX_Y,
+  ENEMY_SCALE, ENEMY_SPAWN_MIN_MS, ENEMY_SPAWN_MAX_MS,
   ENEMY_SPAWN_SLOWDOWN_THRESHOLD, ENEMY_SPAWN_SLOWDOWN_FACTOR,
   ENEMY_MIN_SPAWN_DISTANCE_FROM_HEAD, CAPTURE_ZONE_MIN_SPAWN_DISTANCE,
 } from '../config/constants.js';
+import { toScreenX, toScreenY, screenCellSize } from '../core/gridMath.js';
 import { EnemyTypes } from '../content/enemies/index.js';
 // 하단 상태창(render/statusPanel.js)의 적 킬 스택 아이콘과 같은 이미지/폴백 규칙을 필드에
 // 스폰되는 적 렌더링에도 그대로 쓴다 - assets/enemies/enemy{id}.png를 여기서도 재사용.
@@ -59,7 +61,9 @@ export class EnemyManager {
 
       const nx = enemy.x + dir.x;
       const ny = enemy.y + dir.y;
-      if (nx < 0 || nx >= GRID_W || ny < 0 || ny >= GRID_H) continue;
+      // 필드 절대 경계가 아니라 벽 안쪽(뱀이 갈 수 있는 범위)까지만 - 그렇지 않으면 이동형
+      // 적(추격형/추적사격형)이 회색 벽 구역으로 들어가버려 영구히 손댈 수 없게 된다.
+      if (nx < PLAYABLE_MIN_X || nx >= PLAYABLE_MAX_X || ny < PLAYABLE_MIN_Y || ny >= PLAYABLE_MAX_Y) continue;
       enemy.x = nx;
       enemy.y = ny;
     }
@@ -155,8 +159,14 @@ export class EnemyManager {
     const snake = world.snake;
     const head = snake.head;
     const candidates = [];
-    for (let x = margin; x < GRID_W - margin; x++) {
-      for (let y = margin; y < GRID_H - margin; y++) {
+    // 후보 칸 범위는 captureZone 여백과 "벽 안쪽(뱀이 실제로 갈 수 있는 범위)" 중 더 좁은 쪽을
+    // 쓴다 - 안 그러면 적이 회색 벽 구역에 스폰돼 영구히 도달 불가능해진다.
+    const minX = Math.max(margin, PLAYABLE_MIN_X);
+    const maxX = Math.min(GRID_W - margin, PLAYABLE_MAX_X);
+    const minY = Math.max(margin, PLAYABLE_MIN_Y);
+    const maxY = Math.min(GRID_H - margin, PLAYABLE_MAX_Y);
+    for (let x = minX; x < maxX; x++) {
+      for (let y = minY; y < maxY; y++) {
         const occupiedBySnake = snake.occupies(x, y);
         const occupiedByEnemy = this.enemies.some(enemy => enemy.x === x && enemy.y === y);
         // 뱀 머리와 너무 가까운 칸은 후보에서 제외 - 반응할 틈도 없이 바로 충돌해 죽는 것 방지.
@@ -187,12 +197,12 @@ export class EnemyManager {
     });
   }
 
-  render(ctx) {
-    const C = CELL_SIZE;
+  render(ctx, camera) {
+    const C = screenCellSize();
     const size = C * ENEMY_SCALE;
     for (const enemy of this.enemies) {
-      const x = enemy.x * C - (size - C) / 2;
-      const y = enemy.y * C - (size - C) / 2;
+      const x = toScreenX(enemy.x, camera) - (size - C) / 2;
+      const y = toScreenY(enemy.y, camera) - (size - C) / 2;
 
       // assets/enemies/enemy{id}.png가 있으면 그걸 그리고, 없으면 예전처럼 typeDef.color
       // 색깔 네모로 대체한다 - 상태창 아이콘과 완전히 같은 폴백 규칙(getEnemyIcon).

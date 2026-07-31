@@ -5,9 +5,9 @@ import {
 import { chaserEnemy } from './content/enemies/chaser.js';
 import { CintamaniTypes } from './content/cintamani/index.js';
 import { createEventBus } from './core/eventBus.js';
+import { createCamera } from './core/camera.js';
 import { createStateMachine } from './core/stateMachine.js';
 import { createGameLoop } from './core/loop.js';
-import { createHud } from './render/hud.js';
 import { createStatusPanel } from './render/statusPanel.js';
 import { createLeaderboardPanel } from './render/leaderboardPanel.js';
 import { Snake } from './entities/snake.js';
@@ -34,8 +34,13 @@ function createWorld() {
     particleManager: null,
     scorePopupManager: null,
     stats: null,
+    camera: null,
     startTime: 0,
     testMode: false,
+    // 현재 틱 안에서 얼마나 지났는지(0~1) - states/playingState.js가 onFrame마다 갱신하고
+    // onTick 시작 시 0으로 되돌린다. render/layers.js의 snakeLayer가 이 값으로 뱀의 각 칸을
+    // prevSegments -> segments로 보간해서, 틱마다 한 칸씩 "뚝뚝" 끊겨 보이던 이동을 부드럽게 만든다.
+    tickProgress: 1,
   };
 
   // testMode: 여러 기능을 빠르게 시험해보기 위한 시작 상태 — 기본보다 긴 초기 길이 +
@@ -51,6 +56,9 @@ function createWorld() {
     world.projectileManager = createProjectileManager();
     world.particleManager = createParticleManager();
     world.scorePopupManager = createScorePopupManager();
+    // 카메라 - 뱀 시작 위치(필드 정중앙, entities/snake.js의 Snake 생성자와 동일 기준)를
+    // 보도록 초기화된다(core/camera.js의 createCamera 참고).
+    world.camera = createCamera();
     const tickMs = testMode ? TEST_MODE_TICK_MS : TICK_MS;
     const initialSpeedLevel = getSpeedLevel(tickMs);
     // 속도/공격력 먹이가 이 값들을 게임 도중 바꾼다 — 상수(TICK_MS/PROJECTILE_DAMAGE)는
@@ -111,6 +119,7 @@ function createWorld() {
       scaleWaveUnlocked: false,
     };
     world.startTime = performance.now();
+    world.tickProgress = 1;
     world.itemManager.ensureFood(world.snake, world.enemyManager);
   };
 
@@ -120,7 +129,6 @@ function createWorld() {
 
 export function createGame(canvas) {
   const ctx = canvas.getContext('2d');
-  const hud = createHud();
   const statusPanel = createStatusPanel();
   const world = createWorld();
   // 타이틀 화면 등 playing/gameOver 진입 전에도 상태창이 빈 캔버스로 안 보이도록, world의
@@ -128,7 +136,7 @@ export function createGame(canvas) {
   // 매 프레임 다시 그린다.
   statusPanel.render(world);
   // gameOverState와 leaderboardViewState가 같이 쓰는 단일 패널 - DOM 엘리먼트가 하나뿐이라
-  // 두 번 만들면 submit/click 리스너가 중복 등록된다(hud와 같은 "한 번만 생성" 패턴).
+  // 두 번 만들면 submit/click 리스너가 중복 등록된다(statusPanel과 같은 "한 번만 생성" 패턴).
   const leaderboardPanel = createLeaderboardPanel();
 
   function startGame(options) {
@@ -144,8 +152,8 @@ export function createGame(canvas) {
     stateMachine.transition('leaderboardView');
   }
 
-  const playingState = createPlayingState({ world, hud, ctx, statusPanel });
-  const gameOverState = createGameOverState({ world, ctx, hud, statusPanel, panel: leaderboardPanel, onRestart: goToTitle });
+  const playingState = createPlayingState({ world, ctx, statusPanel });
+  const gameOverState = createGameOverState({ world, ctx, statusPanel, panel: leaderboardPanel, onRestart: goToTitle });
   const titleState = createTitleState({ ctx, statusPanel, onStart: startGame, onViewLeaderboard: viewLeaderboard });
   const leaderboardViewState = createLeaderboardViewState({ ctx, statusPanel, panel: leaderboardPanel, onBack: goToTitle });
 

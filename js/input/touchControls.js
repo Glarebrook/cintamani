@@ -15,12 +15,15 @@ const KEY_MAP = {
   'touch-l': { key: 'l', code: 'KeyL' },
   'touch-space': { key: ' ', code: 'Space' },
   'touch-p': { key: 'p', code: 'KeyP' },
+  'touch-1': { key: '1', code: 'Digit1' },
+  'touch-2': { key: '2', code: 'Digit2' },
+  'touch-3': { key: '3', code: 'Digit3' },
 };
 
 // 화면(상태)마다 실제로 쓰이는 액션 버튼만 다르다 - 타이틀에선 T/L이 필요하고 게임 중엔
 // 필요 없어지는 대신 P(일시정지)가 필요해지는 식. 방향키(십자패드)는 상태와 무관하게 항상
 // 표시한다 - 안 쓰이는 화면에서 눌러도 해가 없어서 굳이 상태별로 가릴 필요가 없다.
-const ACTION_BUTTON_IDS = ['touch-t', 'touch-l', 'touch-enter', 'touch-space', 'touch-p'];
+const ACTION_BUTTON_IDS = ['touch-t', 'touch-l', 'touch-enter', 'touch-space', 'touch-p', 'touch-1', 'touch-2', 'touch-3'];
 
 // pointer:coarse(마우스처럼 정밀한 입력장치가 없다는 뜻 - 터치가 주 입력수단인 기기의 표준
 // 신호)를 우선 쓰고, 이걸 지원 안 하는 구형 브라우저를 위해 ontouchstart 유무도 같이 본다.
@@ -56,7 +59,7 @@ export function createTouchControls() {
 }
 
 // states/*.js가 각자의 enter()에서 호출해서, 그 화면에 실제로 필요한 액션 버튼만 보이게
-// 한다(hud/statusPanel을 각 상태가 직접 다루는 것과 같은 패턴). document가 없는 헤드리스
+// 한다(statusPanel을 각 상태가 직접 다루는 것과 같은 패턴). document가 없는 헤드리스
 // 테스트 환경에서도 각 상태의 enter()가 그대로 호출되므로 방어적으로 처리한다. 오버레이
 // 자체가 숨겨진(데스크톱) 상태에서 호출돼도 그냥 아무 효과 없이 안전하다.
 export function setTouchActionButtons(visibleIds) {
