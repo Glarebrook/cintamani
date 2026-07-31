@@ -82,9 +82,24 @@ const getEnemyIconImpl = createIconLoader(ENEMY_IDS, id => `assets/enemies/enemy
 const getCintamaniIconImpl = createIconLoader(CINTAMANI_KEYS, key => `assets/cintamani/${key}.png`);
 const getWeaponIconImpl = createIconLoader(WEAPON_KEYS, key => `assets/weapons/${key}.png`);
 const getStatIconImpl = createIconLoader(STAT_KEYS, key => `assets/stats/${key}.png`);
+// 적 아이콘의 선택적 2번째 프레임 - enemy{id}_b.png가 실제로 존재하는 id만 아래 getEnemyIcon()에서
+// 자동으로 두 프레임을 번갈아 그린다(현재는 2번적/enemy2_b.png만 대상). 파일이 없는 id는
+// createIconLoader의 기존 로딩 실패 규칙 그대로 get()이 항상 null을 돌려주므로, 별도 분기 없이
+// 자연히 프레임 A 고정(기존과 동일한 정지 이미지)으로 남는다 - id별로 하드코딩할 필요가 없다.
+const getEnemyIconFrameBImpl = createIconLoader(ENEMY_IDS, id => `assets/enemies/enemy${id}_b.png`);
+const ENEMY_ANIM_FRAME_MS = 300; // 2프레임 애니메이션의 프레임당 노출 시간
 
 export function getEnemyIcon(id) {
-  return getEnemyIconImpl(id);
+  const frameA = getEnemyIconImpl(id);
+  const frameB = getEnemyIconFrameBImpl(id);
+  // frameB가 없으면(대부분의 id) 항상 frameA만 반환 - 기존 정지 이미지 동작과 완전히 동일.
+  // frameB가 있으면 실시간 시계를 ENEMY_ANIM_FRAME_MS로 나눈 값으로 두 프레임을 전역
+  // 동기화해서 번갈아 반환한다 - 같은 타입의 적이 여러 마리라도 전부 같은 박자로 움직인다
+  // (개별 위상차를 줄 이유가 없는 단순 아이들 애니메이션이라 이 정도로 충분).
+  if (!frameB) return frameA;
+  if (typeof performance === 'undefined') return frameA; // 헤드리스(jsc) 등 performance 없는 환경 방어
+  const useFrameB = Math.floor(performance.now() / ENEMY_ANIM_FRAME_MS) % 2 === 1;
+  return useFrameB ? frameB : frameA;
 }
 
 export function getCintamaniIcon(key) {

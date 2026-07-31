@@ -57,6 +57,26 @@ function snakeLayer(ctx, world) {
     ctx.fillRect(s.x * C, s.y * C, C, C);
   }
 
+  // 몸이 스스로 겹치거나 촘촘하게 감기면 흰 사각형들이 붙어서 하나의 덩어리처럼 보여
+  // 구불구불한 형태가 안 보이는 문제가 실제로 신고됐다 - 칸마다 테두리를 두르는 대신,
+  // 머리부터 꼬리까지 각 칸의 중앙점을 순서대로 이어주는 회색 선(척추선) 하나를 그린다.
+  // segments 배열은 항상 머리(0번)→꼬리 순이고, 배열상 이웃한 두 칸은 뱀이 움직이는 방식상
+  // 실제 격자에서도 항상 붙어있다 - 그래서 그냥 중앙점을 순서대로 쭉 이으면, 몸이 어떻게
+  // 접혀있든 자동으로 꺾이는 선이 그려져서 지나온 경로 순서가 드러난다.
+  if (segments.length >= 2) {
+    ctx.strokeStyle = 'rgba(100, 100, 100, 0.6)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(segments[0].x * C + C / 2, segments[0].y * C + C / 2);
+    for (let i = 1; i < segments.length; i++) {
+      const s = segments[i];
+      ctx.lineTo(s.x * C + C / 2, s.y * C + C / 2);
+    }
+    ctx.stroke();
+  }
+
+  // 척추선의 시작점(머리 칸 중앙)까지 이어져 그려지므로, 머리를 이 뒤에 칠해야 그 부분이
+  // 빨간 머리에 자연스럽게 가려져서 선이 머리에서부터 뻗어나오는 것처럼 보인다.
   const head = snake.head;
   ctx.fillStyle = COLOR.head;
   ctx.fillRect(head.x * C, head.y * C, C, C);
@@ -151,8 +171,11 @@ function scaleWaveLayer(ctx, world) {
 }
 
 // 지금 화면이 실제로 최신 코드를 불러온 게 맞는지 눈으로 바로 확인할 수 있도록,
-// 우측 하단에 작게 빌드 표시를 띄운다.
-function versionLayer(ctx) {
+// 우측 하단에 작게 빌드 표시를 띄운다. export하는 이유: 원래는 이 레이어 목록(실제 플레이/
+// 게임오버 화면)에서만 쓰였지만, 타이틀/리더보드 열람 화면(overlays.js, 이 레이어 목록을
+// 안 쓰고 독자적으로 그림)에도 버전을 노출하고 싶어서 - 그리는 내용이 완전히 같으므로
+// 복사하지 않고 그대로 재사용한다.
+export function versionLayer(ctx) {
   const cw = GRID_W * CELL_SIZE;
   const ch = GRID_H * CELL_SIZE;
   ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';

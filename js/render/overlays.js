@@ -1,5 +1,6 @@
 import { GRID_W, GRID_H, CELL_SIZE } from '../config/constants.js';
 import { drawIcon } from './statusIcons.js';
+import { versionLayer } from './layers.js';
 
 // 타이틀 화면은 아직 world가 시작 전이라 그 위에 겹쳐 그리는 오버레이가 아니라
 // 화면 전체를 단독으로 채운다 — 배경색은 layers.js의 backgroundLayer와 동일하게 맞춘다.
@@ -23,6 +24,8 @@ export function renderTitleScreen(ctx) {
   ctx.fillText('ENTER - GAME START', cw / 2, ch * 0.72 + bounce);
   ctx.fillText('T - TEST MODE', cw / 2, ch * 0.79 + bounce);
   ctx.fillText('L - LEADERBOARD', cw / 2, ch * 0.86 + bounce);
+
+  versionLayer(ctx);
 }
 
 // 타이틀에서 L을 눌러 진입하는 순위 열람 전용 화면의 배경 — 실제 목록/이름 등은
@@ -38,6 +41,8 @@ export function renderLeaderboardViewBackground(ctx) {
   ctx.textBaseline = 'middle';
   ctx.font = `bold ${Math.floor(ch * 0.06)}px CintamaniFont, monospace`;
   ctx.fillText('LEADERBOARD', cw / 2, ch * 0.1);
+
+  versionLayer(ctx);
 }
 
 // 일시정지 오버레이 - P/ESC로 states/playingState.js가 토글하는 paused 플래그가 true인 동안
