@@ -13,13 +13,13 @@ export function renderTitleScreen(ctx) {
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `bold ${Math.floor(ch * 0.12)}px monospace`;
+  ctx.font = `bold ${Math.floor(ch * 0.12)}px CintamaniFont, monospace`;
   ctx.fillText('CINTAMANI', cw / 2, ch / 2);
 
   // 세 선택지를 하나의 덩어리로 보고 위아래로 통통 튀는 느낌을 준다 — 개별 줄마다
   // 따로 튀면 줄 사이 간격이 흔들려 보이므로, 같은 오프셋을 함께 적용한다.
   const bounce = Math.sin(performance.now() / 200) * (ch * 0.02);
-  ctx.font = `${Math.floor(ch * 0.035)}px monospace`;
+  ctx.font = `${Math.floor(ch * 0.035)}px CintamaniFont, monospace`;
   ctx.fillText('ENTER - GAME START', cw / 2, ch * 0.72 + bounce);
   ctx.fillText('T - TEST MODE', cw / 2, ch * 0.79 + bounce);
   ctx.fillText('L - LEADERBOARD', cw / 2, ch * 0.86 + bounce);
@@ -36,7 +36,7 @@ export function renderLeaderboardViewBackground(ctx) {
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `bold ${Math.floor(ch * 0.06)}px monospace`;
+  ctx.font = `bold ${Math.floor(ch * 0.06)}px CintamaniFont, monospace`;
   ctx.fillText('LEADERBOARD', cw / 2, ch * 0.1);
 }
 
@@ -50,9 +50,9 @@ export function renderPauseOverlay(ctx) {
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `bold ${Math.floor(ch * 0.08)}px monospace`;
+  ctx.font = `bold ${Math.floor(ch * 0.08)}px CintamaniFont, monospace`;
   ctx.fillText('PAUSE', cw / 2, ch / 2 - ch * 0.05);
-  ctx.font = `${Math.floor(ch * 0.03)}px monospace`;
+  ctx.font = `${Math.floor(ch * 0.03)}px CintamaniFont, monospace`;
   ctx.fillText('P 또는 ESC로 재개', cw / 2, ch / 2 + ch * 0.05);
 }
 
@@ -106,18 +106,18 @@ export function renderTutorialPopup(ctx, { icon, iconColor, title, lines }) {
   }
 
   ctx.fillStyle = '#ffd54f';
-  ctx.font = `bold ${Math.floor(lineHeight * 0.8)}px monospace`;
+  ctx.font = `bold ${Math.floor(lineHeight * 0.8)}px CintamaniFont, monospace`;
   ctx.fillText(title, cw / 2, cursorY + titleH / 2);
   cursorY += titleH;
 
   ctx.fillStyle = '#ffffff';
-  ctx.font = `${Math.floor(lineHeight * 0.5)}px monospace`;
+  ctx.font = `${Math.floor(lineHeight * 0.5)}px CintamaniFont, monospace`;
   lines.forEach((line, i) => {
     ctx.fillText(line, cw / 2, cursorY + lineHeight * (i + 0.5));
   });
 
   ctx.fillStyle = '#999999';
-  ctx.font = `${Math.floor(lineHeight * 0.4)}px monospace`;
+  ctx.font = `${Math.floor(lineHeight * 0.4)}px CintamaniFont, monospace`;
   ctx.fillText('ENTER를 눌러 닫기', cw / 2, boxY + boxH - lineHeight * 0.4);
 }
 
@@ -145,8 +145,8 @@ export function renderGameOverOverlay(ctx) {
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `bold ${Math.floor(ch * 0.06)}px monospace`;
+  ctx.font = `bold ${Math.floor(ch * 0.06)}px CintamaniFont, monospace`;
   ctx.fillText('GAME OVER', cw / 2, ch / 2 - ch * 0.05);
-  ctx.font = `${Math.floor(ch * 0.03)}px monospace`;
+  ctx.font = `${Math.floor(ch * 0.03)}px CintamaniFont, monospace`;
   ctx.fillText('Press Enter to restart', cw / 2, ch / 2 + ch * 0.05);
 }

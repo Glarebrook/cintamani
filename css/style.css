@@ -1,3 +1,17 @@
+/* 게임 전용 폰트 - assets/fonts/에 파일이 없으면 그냥 로딩 실패로 조용히 넘어가고 아래
+   font-family들의 monospace 폴백이 그대로 쓰인다(다른 이미지 에셋과 같은 "없으면 폴백"
+   방식). 여러 형식을 다 나열해두는 이유는 사용자가 갖고 있는 파일 확장자를 미리 알 수
+   없어서 - 실제로 존재하는 파일 하나만 브라우저가 골라서 쓴다(assets/fonts/README.md 참고). */
+@font-face {
+  font-family: 'CintamaniFont';
+  src:
+    url('../assets/fonts/game.woff2') format('woff2'),
+    url('../assets/fonts/game.woff') format('woff'),
+    url('../assets/fonts/game.ttf') format('truetype'),
+    url('../assets/fonts/game.otf') format('opentype');
+  font-display: swap;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -30,7 +44,7 @@ body {
   justify-content: space-between;
   align-items: baseline;
   color: #888;
-  font-family: monospace;
+  font-family: 'CintamaniFont', monospace;
   font-size: 13px;
   letter-spacing: 0.04em;
   padding: 0 2px;
@@ -107,7 +121,7 @@ body {
   gap: 32px;
   background: rgba(10, 10, 10, 0.94);
   color: #fff;
-  font-family: monospace;
+  font-family: 'CintamaniFont', monospace;
   padding: 16px;
   overflow: hidden; /* 안전장치 - 어떤 경우에도 캔버스 경계 밖으로 시각적으로 삐져나가지 않게 함 */
 }
@@ -187,7 +201,7 @@ body {
   color: #fff;
   border: 1px solid #555;
   padding: 6px 10px;
-  font-family: monospace;
+  font-family: 'CintamaniFont', monospace;
   font-size: 14px;
   text-align: center;
   width: 220px; /* 이름 최대 200자를 감안해 기본 입력창보다 넓힘 - 넘치는 부분은 입력창 자체 스크롤로 처리됨 */
@@ -203,7 +217,7 @@ body {
   color: #fff;
   border: 1px solid #555;
   padding: 6px 14px;
-  font-family: monospace;
+  font-family: 'CintamaniFont', monospace;
   font-size: 13px;
   cursor: pointer;
 }

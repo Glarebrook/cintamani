@@ -114,7 +114,7 @@ function particleLayer(ctx, world) {
 // 남은 수명 비율(life/maxLife)만큼 알파를 줄여서 위로 떠오르며 사라지는 느낌을 낸다.
 function scorePopupLayer(ctx, world) {
   const C = CELL_SIZE;
-  ctx.font = 'bold 12px monospace';
+  ctx.font = 'bold 12px CintamaniFont, monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
   for (const popup of world.scorePopupManager.popups) {
@@ -156,7 +156,7 @@ function versionLayer(ctx) {
   const cw = GRID_W * CELL_SIZE;
   const ch = GRID_H * CELL_SIZE;
   ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-  ctx.font = '10px monospace';
+  ctx.font = '10px CintamaniFont, monospace';
   ctx.textAlign = 'right';
   ctx.textBaseline = 'bottom';
   ctx.fillText(BUILD_VERSION, cw - 4, ch - 3);

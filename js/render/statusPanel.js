@@ -43,7 +43,7 @@ const COLUMN_TITLE_HEIGHT = 18;
 
 function drawColumnTitle(ctx, text, x, columnWidth) {
   ctx.fillStyle = TEXT_COLOR;
-  ctx.font = 'bold 11px monospace';
+  ctx.font = 'bold 11px CintamaniFont, monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(text, x + columnWidth / 2, COLUMN_TITLE_HEIGHT / 2 + 2);
@@ -119,7 +119,7 @@ function drawSnakeStatsColumn(ctx, world, x, columnWidth, contentTop, contentH) 
     drawIconOrFallback(ctx, item.icon, slotCx, iconCy, iconRadius, item.fallback);
 
     ctx.fillStyle = TEXT_COLOR;
-    ctx.font = 'bold 11px monospace';
+    ctx.font = 'bold 11px CintamaniFont, monospace';
     ctx.fillText(String(item.value), slotCx, textCy);
   });
 }
@@ -142,7 +142,7 @@ function drawEnemyKillsColumn(ctx, world, x, columnWidth, contentTop, contentH) 
     drawIconOrFallback(ctx, getEnemyIcon(id), slotCx, iconCy, iconRadius, def.color);
 
     ctx.fillStyle = TEXT_COLOR;
-    ctx.font = 'bold 11px monospace';
+    ctx.font = 'bold 11px CintamaniFont, monospace';
     const count = world.stats.killsByType[id] || 0;
     ctx.fillText(String(count), slotCx, textCy);
   }
@@ -166,7 +166,7 @@ function drawCintamaniColumn(ctx, world, x, columnWidth, contentTop, contentH) {
     drawIconOrFallback(ctx, getCintamaniIcon(key), slotCx, iconCy, iconRadius, CINTAMANI_COLOR[key]);
 
     ctx.fillStyle = TEXT_COLOR;
-    ctx.font = 'bold 11px monospace';
+    ctx.font = 'bold 11px CintamaniFont, monospace';
     ctx.fillText(`×${world.stats.cintamani[key]}`, slotCx, textCy);
   }
 }

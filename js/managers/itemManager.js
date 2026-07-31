@@ -110,7 +110,7 @@ export class ItemManager {
 
       if (def.overlayText) {
         ctx.fillStyle = '#ffffff';
-        ctx.font = `${Math.max(4, Math.floor(CELL_SIZE * 0.9))}px monospace`;
+        ctx.font = `${Math.max(4, Math.floor(CELL_SIZE * 0.9))}px CintamaniFont, monospace`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(def.overlayText, food.x * CELL_SIZE + CELL_SIZE / 2, food.y * CELL_SIZE + CELL_SIZE / 2);

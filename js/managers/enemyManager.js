@@ -205,7 +205,7 @@ export class EnemyManager {
       }
 
       ctx.fillStyle = '#ffffff';
-      ctx.font = `${Math.max(10, Math.floor(size * 0.5))}px monospace`;
+      ctx.font = `${Math.max(10, Math.floor(size * 0.5))}px CintamaniFont, monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(enemy.typeDef.displayText(enemy), x + size / 2, y + size / 2);
