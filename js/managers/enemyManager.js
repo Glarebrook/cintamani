@@ -17,6 +17,10 @@ export class EnemyManager {
     this.reset();
   }
 
+  // world가 없을 때(생성자에서의 최초 reset() - world.stats가 아직 만들어지기 전이라
+  // game.js의 world.reset() 순서상 이 시점엔 넘겨줄 world가 없다) 최초 스폰 타이머 하나만
+  // 기본 상수값을 쓴다 - 이후 update()가 매번 world를 넘기므로 실제 게임플레이 중 스폰
+  // 간격은 항상 world.stats(테스트 빌드 오버레이 포함)를 따른다.
   reset() {
     this.enemies = [];
     this.spawnTimer = 0;
@@ -35,7 +39,7 @@ export class EnemyManager {
       this._trySpawn(world);
       // _trySpawn 이후에 계산해야 방금 스폰(또는 스폰 실패)이 반영된 최신 마리 수 기준으로
       // 다음 간격의 지수 배율(_randomSpawnDelay 참고)이 정해진다.
-      this.nextSpawnDelay = this._randomSpawnDelay();
+      this.nextSpawnDelay = this._randomSpawnDelay(world);
     }
   }
 
@@ -97,8 +101,13 @@ export class EnemyManager {
   // ENEMY_SPAWN_SLOWDOWN_FACTOR(2)를 거듭제곱해 기본 간격을 늘린다 - 4마리째부터 매 한 마리씩
   // 늘어날 때마다 다음 생성까지 갈수록 오래 걸리지만, 생성 자체가 완전히 멈추지는 않는다
   // (예전엔 이 수를 넘으면 생성이 아예 멈추는 하드 캡이었음 - _trySpawn 참고).
-  _randomSpawnDelay() {
-    const base = ENEMY_SPAWN_MIN_MS + Math.floor(Math.random() * (ENEMY_SPAWN_MAX_MS - ENEMY_SPAWN_MIN_MS + 1));
+  // 최소/최대 간격은 world.stats.enemySpawnMinMs/MaxMs를 우선 쓴다(테스트 빌드가 "몹 생성
+  // 속도" 실험을 위해 덮어쓸 수 있는 값 - config/testBuilds.js, game.js의 world.reset 참고).
+  // world가 없거나(생성자 최초 reset) 아직 world.stats가 없으면 기본 상수로 대체한다.
+  _randomSpawnDelay(world) {
+    const min = world?.stats?.enemySpawnMinMs ?? ENEMY_SPAWN_MIN_MS;
+    const max = world?.stats?.enemySpawnMaxMs ?? ENEMY_SPAWN_MAX_MS;
+    const base = min + Math.floor(Math.random() * (max - min + 1));
     const over = Math.max(0, this.enemies.length - ENEMY_SPAWN_SLOWDOWN_THRESHOLD);
     return base * (ENEMY_SPAWN_SLOWDOWN_FACTOR ** over);
   }

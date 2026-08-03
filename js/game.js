@@ -1,11 +1,14 @@
 import {
   TICK_MS, PROJECTILE_DAMAGE, SNAKE_INITIAL_LENGTH, TEST_MODE_INITIAL_LENGTH, TEST_MODE_TICK_MS,
   SCALE_WAVE_UNLOCK_CHASER_KILLS, SCALE_WAVE_DAMAGE, TEST_MODE_CINTAMANI_COUNT,
+  ENEMY_SPAWN_MIN_MS, ENEMY_SPAWN_MAX_MS,
 } from './config/constants.js';
+import { TEST_BUILDS } from './config/testBuilds.js';
 import { chaserEnemy } from './content/enemies/chaser.js';
 import { CintamaniTypes } from './content/cintamani/index.js';
 import { createEventBus } from './core/eventBus.js';
 import { createCamera } from './core/camera.js';
+import { setViewportConfig, resetViewportConfig } from './core/viewportConfig.js';
 import { createStateMachine } from './core/stateMachine.js';
 import { createGameLoop } from './core/loop.js';
 import { createStatusPanel } from './render/statusPanel.js';
@@ -21,6 +24,7 @@ import { getSpeedLevel } from './core/speedLevel.js';
 import { createPlayingState } from './states/playingState.js';
 import { createGameOverState } from './states/gameOverState.js';
 import { createTitleState } from './states/titleState.js';
+import { createTestBuildSelectState } from './states/testBuildSelectState.js';
 import { createLeaderboardViewState } from './states/leaderboardViewState.js';
 
 // World는 매 재시작마다 재생성되지 않고 reset()으로 내부 필드만 갈아끼운다 —
@@ -44,8 +48,21 @@ function createWorld() {
   // 더 빠른 시작 속도로 바로 시작한다. 타이틀 화면에서 Enter(기본)/T(테스트) 중 골라 진입한다.
   // world.testMode로 남겨두는 이유: gameOverState가 이 판이 테스트 모드였는지 알아야
   // 리더보드 제출을 건너뛸 수 있다(테스트 모드 기록이 정상 판과 섞이면 안 됨).
-  world.reset = ({ testMode = false } = {}) => {
+  // buildId: 테스트 빌드 선택 화면(states/testBuildSelectState.js)에서 고른
+  // config/testBuilds.js 항목의 id - testMode가 아니거나 넘기지 않으면(기본 Enter로 시작한
+  // 일반 판) null이고, 뒤에서 아무 것도 덮어쓰지 않는다.
+  world.reset = ({ testMode = false, buildId = null } = {}) => {
     world.testMode = testMode;
+    const build = testMode && buildId ? TEST_BUILDS.find(b => b.id === buildId) : null;
+    // 뷰포트(화면 배율/시야) 오버라이드는 world.camera를 만들기 전에 적용해야 카메라 초기
+    // 중앙 정렬이 그 뷰포트 크기 기준으로 맞게 계산된다(아래 createCamera 참고). 빌드가 없거나
+    // 일반 모드면 항상 기본값으로 되돌려서, 이전 판에 켜져 있던 테스트 빌드의 시야 설정이
+    // 다음 판에 남아있지 않게 한다.
+    if (build?.viewportOverrides && Object.keys(build.viewportOverrides).length) {
+      setViewportConfig(build.viewportOverrides);
+    } else {
+      resetViewportConfig();
+    }
     const initialLength = testMode ? TEST_MODE_INITIAL_LENGTH : SNAKE_INITIAL_LENGTH;
     world.snake = new Snake(initialLength);
     world.enemyManager = new EnemyManager();
@@ -91,6 +108,11 @@ function createWorld() {
       tickMs,
       attackDamage: PROJECTILE_DAMAGE,
       scaleWaveDamage: SCALE_WAVE_DAMAGE,
+      // 적 생성 최소/최대 간격 - 기본은 상수 그대로, 테스트 빌드의 statsOverrides("몹 생성
+      // 속도" 실험)가 이 두 필드를 덮어쓸 수 있다(managers/enemyManager.js의
+      // _randomSpawnDelay 참고).
+      enemySpawnMinMs: ENEMY_SPAWN_MIN_MS,
+      enemySpawnMaxMs: ENEMY_SPAWN_MAX_MS,
       enemyKillStacks: {},
       killsByType,
       cintamani: {
@@ -114,6 +136,9 @@ function createWorld() {
       maxSpeedLevel: initialSpeedLevel,
       venomUnlocked: false,
       scaleWaveUnlocked: false,
+      // 테스트 빌드의 statsOverrides를 마지막에 펼쳐서 위 기본값 위에 덮어쓴다 - 사용자가
+      // 승인한 "world.stats에 재배치 시켜서 덮는 구조"(config/testBuilds.js 참고).
+      ...(build?.statsOverrides || {}),
     };
     world.startTime = performance.now();
     world.itemManager.ensureFood(world.snake, world.enemyManager);
@@ -150,13 +175,30 @@ export function createGame(canvas) {
     stateMachine.transition('leaderboardView');
   }
 
+  function openTestBuildSelect() {
+    stateMachine.transition('testBuildSelect');
+  }
+
   const playingState = createPlayingState({ world, ctx, statusPanel });
   const gameOverState = createGameOverState({ world, ctx, statusPanel, panel: leaderboardPanel, onRestart: goToTitle });
-  const titleState = createTitleState({ ctx, statusPanel, patchNotesPanel, onStart: startGame, onViewLeaderboard: viewLeaderboard });
+  const titleState = createTitleState({
+    ctx, statusPanel, patchNotesPanel, onStart: startGame, onOpenTestBuilds: openTestBuildSelect, onViewLeaderboard: viewLeaderboard,
+  });
+  // 빌드를 고르면 그 build.id를 buildId로 실어 startGame을 그대로 재사용한다 - world.reset이
+  // testMode/buildId를 함께 받아 그 빌드의 오버라이드를 적용한다(위 world.reset 참고).
+  const testBuildSelectState = createTestBuildSelectState({
+    ctx, statusPanel, onSelect: build => startGame({ testMode: true, buildId: build.id }), onBack: goToTitle,
+  });
   const leaderboardViewState = createLeaderboardViewState({ ctx, statusPanel, panel: leaderboardPanel, onBack: goToTitle });
 
   const stateMachine = createStateMachine(
-    { title: titleState, playing: playingState, gameOver: gameOverState, leaderboardView: leaderboardViewState },
+    {
+      title: titleState,
+      testBuildSelect: testBuildSelectState,
+      playing: playingState,
+      gameOver: gameOverState,
+      leaderboardView: leaderboardViewState,
+    },
     'title'
   );
 

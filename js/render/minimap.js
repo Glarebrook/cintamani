@@ -3,9 +3,12 @@
 // 항상 필드 전체를 고정 비율로 보여주고, 그 위에 지금 카메라가 보여주는 범위를 사각형으로
 // 얹어서 알려준다. render/statusPanel.js가 하단 상태창 정중앙에 그린다.
 import {
-  GRID_W, GRID_H, VIEWPORT_COLS, VIEWPORT_ROWS, MINIMAP_WIDTH_PX, MINIMAP_HEIGHT_PX, MINIMAP_DOT_SIZE,
+  GRID_W, GRID_H, MINIMAP_WIDTH_PX, MINIMAP_HEIGHT_PX, MINIMAP_DOT_SIZE,
   PLAYABLE_MIN_X, PLAYABLE_MIN_Y, PLAYABLE_MAX_X, PLAYABLE_MAX_Y,
 } from '../config/constants.js';
+// VIEWPORT_COLS/ROWS는 테스트 빌드가 런타임에 덮어쓸 수 있어서(core/viewportConfig.js)
+// constants.js에서 직접 import하지 않고 매번 getViewportConfig()로 읽는다.
+import { getViewportConfig } from '../core/viewportConfig.js';
 
 // 벽(이동 불가) 영역은 밝은 회색, 실제 이동 가능한 안쪽 영역은 기존처럼 어둡게 - 메인 화면의
 // "회색 벽 / 검은 필드" 색 구분(render/layers.js의 fieldBorderLayer)과 같은 언어를 미니맵에도
@@ -62,11 +65,12 @@ export function renderMinimap(ctx, world, originX, originY) {
 
   // 지금 카메라(메인 화면)가 실제로 보여주고 있는 범위 - VIEWPORT_COLS/ROWS는 위치가 아니라
   // "폭/높이"값이지만, mapX/mapY가 원점 기준 선형 축소라 그대로 넣어도 폭 변환으로 맞게 나온다.
+  const { viewportCols, viewportRows } = getViewportConfig();
   ctx.strokeStyle = VIEWPORT_COLOR;
   ctx.lineWidth = 1;
   ctx.strokeRect(
     mapX(world.camera.x) + 0.5, mapY(world.camera.y) + 0.5,
-    mapX(VIEWPORT_COLS), mapY(VIEWPORT_ROWS)
+    mapX(viewportCols), mapY(viewportRows)
   );
 
   ctx.restore();

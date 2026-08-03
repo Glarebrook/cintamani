@@ -1,9 +1,12 @@
 import {
-  ENEMY_SCALE, PROJECTILE_SIZE_RATIO, BUILD_VERSION, ITEM_FLASH_ALPHA, CAMERA_ZOOM,
+  ENEMY_SCALE, PROJECTILE_SIZE_RATIO, BUILD_VERSION, ITEM_FLASH_ALPHA,
   GRID_W, GRID_H, PLAYABLE_MIN_X, PLAYABLE_MIN_Y, PLAYABLE_MAX_X, PLAYABLE_MAX_Y, FIELD_WALL_COLOR,
   FIELD_WALL_BORDER_COLOR, FIELD_WALL_BORDER_WIDTH,
 } from '../config/constants.js';
 import { toScreenX, toScreenY, screenCellSize, getViewportPixelSize } from '../core/gridMath.js';
+// CAMERA_ZOOM은 테스트 빌드가 런타임에 덮어쓸 수 있어서(core/viewportConfig.js)
+// constants.js에서 직접 import하지 않고 매번 getViewportConfig()로 읽는다.
+import { getViewportConfig } from '../core/viewportConfig.js';
 import { getCaptureZoneBounds } from '../content/mechanics/encirclement.js';
 import { getSnakeSpriteSheet, getHeadRect, getTailRect, getBodyRect, dirFromDelta } from './snakeSprites.js';
 
@@ -281,7 +284,7 @@ function particleLayer(ctx, world) {
 function scorePopupLayer(ctx, world) {
   const camera = world.camera;
   const C = screenCellSize();
-  ctx.font = `bold ${Math.floor(12 * CAMERA_ZOOM)}px CintamaniFont, monospace`;
+  ctx.font = `bold ${Math.floor(12 * getViewportConfig().cameraZoom)}px CintamaniFont, monospace`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
   for (const popup of world.scorePopupManager.popups) {

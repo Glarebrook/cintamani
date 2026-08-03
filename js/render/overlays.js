@@ -61,6 +61,43 @@ export function renderLeaderboardViewBackground(ctx) {
   versionLayer(ctx);
 }
 
+// 타이틀에서 T를 눌렀을 때 거치는 중간 화면(states/testBuildSelectState.js) - 밸런스 실험용
+// "빌드"(config/testBuilds.js) 목록을 숫자키로 고를 수 있게 보여준다. 리더보드 열람 화면과
+// 같은 어두운 배경 + 캔버스 단독 전체 화면 방식.
+export function renderTestBuildSelectScreen(ctx, builds) {
+  const { width: cw, height: ch } = getViewportPixelSize();
+  ctx.fillStyle = '#111111';
+  ctx.fillRect(0, 0, cw, ch);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `bold ${Math.floor(ch * 0.06)}px CintamaniFont, monospace`;
+  ctx.fillText('TEST BUILD SELECT', cw / 2, ch * 0.1);
+
+  ctx.textAlign = 'left';
+  const startY = ch * 0.24;
+  const rowH = ch * 0.13;
+  const titleFontSize = Math.floor(ch * 0.04);
+  const descFontSize = Math.floor(ch * 0.026);
+  builds.forEach((build, i) => {
+    const y = startY + i * rowH;
+    ctx.fillStyle = '#ffd54f';
+    ctx.font = `bold ${titleFontSize}px CintamaniFont, monospace`;
+    ctx.fillText(`${i + 1} - ${build.version}`, cw * 0.12, y);
+    ctx.fillStyle = '#cccccc';
+    ctx.font = `${descFontSize}px CintamaniFont, monospace`;
+    ctx.fillText(build.description, cw * 0.12, y + ch * 0.05);
+  });
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#999999';
+  ctx.font = `${Math.floor(ch * 0.028)}px CintamaniFont, monospace`;
+  ctx.fillText('ESC - 타이틀로', cw / 2, ch * 0.94);
+
+  versionLayer(ctx);
+}
+
 // 일시정지 오버레이 - P/ESC로 states/playingState.js가 토글하는 paused 플래그가 true인 동안
 // 매 프레임 마지막 게임 화면 위에 겹쳐 그린다(게임오버 오버레이와 같은 어둡게+텍스트 방식).
 export function renderPauseOverlay(ctx) {
