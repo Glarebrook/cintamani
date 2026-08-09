@@ -21,6 +21,14 @@ export const PLAYABLE_MIN_Y = FIELD_WALL_THICKNESS;
 export const PLAYABLE_MAX_X = GRID_W - FIELD_WALL_THICKNESS;
 export const PLAYABLE_MAX_Y = GRID_H - FIELD_WALL_THICKNESS;
 
+// 뱀이 움직이는 필드 안쪽(플레이 가능 영역)에 까는 연못 배경 애니메이션 -
+// assets/pond_flow_0~3.png(render/pondBackground.js가 로딩) 4장을 이 간격으로 순환한다.
+// 루프가 매끄럽게 이어지도록 만들어진 소스라 계속 반복해도 끊기는 지점이 없다.
+export const POND_ANIM_FRAME_MS = 230;
+// 이미지 한 장(정사각형 원본)을 화면에서 몇 칸 크기로 반복시킬지 - 값을 낮추면 물결 무늬가
+// 더 촘촘하게, 높이면 한 타일이 더 크게 보인다. 실제로 보면서 조정할 튜닝 값.
+export const POND_TILE_CELLS = 8;
+
 // 카메라/뷰포트 - 화면(게임 캔버스)에 "한 번에 보이는" 칸 수와 확대 배율. GRID_W/GRID_H(필드
 // 전체 크기)와는 별개 개념이다 - 필드가 뷰포트보다 크면 core/camera.js가 그 안을 스크롤한다.
 // 좌측 상태창(세로 사이드바) + 우측 플레이 화면 레이아웃으로 바꾸면서, 게임 캔버스 자체가
@@ -224,7 +232,7 @@ export const ANIM_FRAME_TOGGLE_MS = 300;
 
 // 화면 우측 하단에 표시되는 빌드 표시 — index.html의 캐시 무효화 ?v= 값과 항상 같이 올린다.
 // 코드를 바꿀 때마다 갱신해서, 새로고침한 화면이 실제로 최신 코드인지 눈으로 바로 확인할 수 있게 한다.
-export const BUILD_VERSION = '20260809-3';
+export const BUILD_VERSION = '20260809-4';
 
 // core/updateCheck.js가 대기(타이틀) 화면에서 이 간격마다 index.html을 다시 받아와 서버의
 // 최신 버전과 비교한다 - NAS에 새 파일을 올려도 이미 열려 있는 탭은 스스로 알 방법이 없어서

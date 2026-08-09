@@ -10,6 +10,14 @@
 //   속성만 토글하면 되게 하기 위함). 생략하면 기본값 true(노출)로 취급한다.
 export const PATCH_NOTES = [
   {
+    version: '2.10.3',
+    datetime: '2026-08-09 00:00',
+    visible: true,
+    lines: [
+      '뱀이 움직이는 필드 바닥을 검은 배경에서 흐르는 연못 애니메이션 배경으로 변경',
+    ],
+  },
+  {
     version: '2.10.2',
     datetime: '2026-08-09 00:00',
     visible: true,

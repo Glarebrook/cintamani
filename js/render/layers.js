@@ -1,7 +1,7 @@
 import {
   ENEMY_SCALE, PROJECTILE_SIZE_RATIO, BUILD_VERSION, ITEM_FLASH_ALPHA,
   GRID_W, GRID_H, PLAYABLE_MIN_X, PLAYABLE_MIN_Y, PLAYABLE_MAX_X, PLAYABLE_MAX_Y, FIELD_WALL_COLOR,
-  FIELD_WALL_BORDER_COLOR, FIELD_WALL_BORDER_WIDTH,
+  FIELD_WALL_BORDER_COLOR, FIELD_WALL_BORDER_WIDTH, POND_TILE_CELLS,
   PASS_THROUGH_GRACE_TINT_COLOR, PASS_THROUGH_GRACE_TINT_ALPHA,
 } from '../config/constants.js';
 import { toScreenX, toScreenY, screenCellSize, getViewportPixelSize } from '../core/gridMath.js';
@@ -10,6 +10,7 @@ import { toScreenX, toScreenY, screenCellSize, getViewportPixelSize } from '../c
 import { getViewportConfig } from '../core/viewportConfig.js';
 import { getCaptureZoneBounds } from '../content/mechanics/encirclement.js';
 import { getSnakeSpriteSheet, getHeadRect, getTailRect, getBodyRect, dirFromDelta } from './snakeSprites.js';
+import { getPondFrame } from './pondBackground.js';
 
 const COLOR = {
   bg:   '#111111',
@@ -22,10 +23,35 @@ const COLOR = {
 // 그려지는 모든 것이 함께 따라 움직인다. 뷰포트 자체의 픽셀 크기(배경/오버레이용)는
 // getViewportPixelSize()로 구한다 - 필드 전체 크기(GRID_W*CELL_SIZE)와는 이제 다른 값이다.
 
-function backgroundLayer(ctx) {
+// 뱀이 실제로 움직일 수 있는 안쪽(PLAYABLE_MIN/MAX)에만 연못 이미지를 깐다 - 회색 벽 테두리는
+// 그 위에 fieldBorderLayer가 따로 덧그리므로 이 함수가 신경 쓸 필요 없다. 이미지가 아직 다
+// 로딩되기 전이면(render/pondBackground.js) 위에서 채운 기존 검은 배경이 그대로 보인다.
+function backgroundLayer(ctx, world) {
   const { width, height } = getViewportPixelSize();
   ctx.fillStyle = COLOR.bg;
   ctx.fillRect(0, 0, width, height);
+
+  const frame = getPondFrame();
+  if (!frame) return;
+
+  const camera = world.camera;
+  const C = screenCellSize();
+  const tileSize = C * POND_TILE_CELLS;
+
+  const pattern = ctx.createPattern(frame, 'repeat');
+  // 패턴을 "화면"이 아니라 "필드(격자 0,0)"에 고정한다 - toScreenX/Y(0, camera)만큼 옮기고
+  // 원본 이미지가 화면에서 tileSize px가 되도록 축소/확대하면, 카메라가 움직일 때 이 물 무늬도
+  // toScreenX/Y로 그리는 다른 모든 것과 똑같이 같이 스크롤된다(둘 다 같은 camera.x/y를 반영).
+  const scale = tileSize / frame.naturalWidth;
+  pattern.setTransform(new DOMMatrix()
+    .translate(toScreenX(0, camera), toScreenY(0, camera))
+    .scale(scale));
+
+  ctx.fillStyle = pattern;
+  ctx.fillRect(
+    toScreenX(PLAYABLE_MIN_X, camera), toScreenY(PLAYABLE_MIN_Y, camera),
+    (PLAYABLE_MAX_X - PLAYABLE_MIN_X) * C, (PLAYABLE_MAX_Y - PLAYABLE_MIN_Y) * C
+  );
 }
 
 // 필드 가장자리의 "벽" - 실제로 뱀이 갈 수 있는 범위(PLAYABLE_MIN/MAX_X/Y) 바깥, 필드
