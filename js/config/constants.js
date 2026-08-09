@@ -25,15 +25,19 @@ export const PLAYABLE_MAX_Y = GRID_H - FIELD_WALL_THICKNESS;
 // 전체 크기)와는 별개 개념이다 - 필드가 뷰포트보다 크면 core/camera.js가 그 안을 스크롤한다.
 // 좌측 상태창(세로 사이드바) + 우측 플레이 화면 레이아웃으로 바꾸면서, 게임 캔버스 자체가
 // 대략 4:3으로 보이도록 잡았다 - 캔버스 픽셀 크기는 VIEWPORT_COLS*CELL_SIZE*CAMERA_ZOOM으로
-// 결정되므로, "화면 배율(CAMERA_ZOOM)만 낮추고 그만큼 VIEWPORT_COLS/ROWS를 늘려서" 캔버스
-// 크기(768x576, 4:3)는 그대로 유지하면서 뱀/적은 더 작게, 시야는 더 넓게 보이도록 하는
-// 방식을 반복 적용 중(패치3에서 80%로 한 번, 여기서 그 기준으로 다시 10% 추가로 낮춤).
-// 정확히 90%(1.6*0.9=1.44)가 되는 정수 VIEWPORT_COLS/ROWS 조합이 없어서, 4:3 비율(68:51)을
-// 유지하는 조합 중 90%에 가장 가까운 걸 썼다 - 68*8*(24/17)=768, 51*8*(24/17)=576,
-// 배율은 1.6 -> 24/17(≈1.412)로 약 11.8% 감소(정확히 10%는 아니지만 가장 근접한 정수 조합).
+// 결정된다. 예전 패치들(80% -> 90%)은 "캔버스 크기(768x576)는 고정한 채 CAMERA_ZOOM만
+// 낮추고 VIEWPORT_COLS/ROWS를 늘려서" 뱀/적은 작아지는 대신 시야를 넓히는 방향이었다.
+// 여기서는 반대 방향 요청("뱀/아이템이 작아 보인다, 보이는 칸 수는 그대로 두고 화면 자체를
+// 키워달라")이라, VIEWPORT_COLS/ROWS는 그대로 두고 CAMERA_ZOOM만 정확히 2배로 올렸다 -
+// main.js가 캔버스 크기를 VIEWPORT_COLS*CELL_SIZE*CAMERA_ZOOM으로 페이지 로딩 시 한 번 정하므로
+// (core/gridMath.js의 getViewportPixelSize), 이렇게 하면 보이는 칸 수(시야)는 완전히 그대로
+// 유지되면서 캔버스 자체의 실제 픽셀 크기가 768x576 -> 1536x1152로 정확히 2배가 된다(칸 하나당
+// 화면 픽셀 크기도 정확히 2배 -> 뱀/적/아이템이 가로세로 2배, 면적 4배로 커져 보임). 좌측
+// 상태창 캔버스는 너비(STATUS_PANEL_WIDTH)는 그대로 두고 높이만 게임 캔버스를 따라 커지므로
+// (main.js) 이전보다 세로로 길쭉해 보이는 건 의도된 트레이드오프.
 export const VIEWPORT_COLS = 68;
 export const VIEWPORT_ROWS = 51;
-export const CAMERA_ZOOM = 24 / 17;
+export const CAMERA_ZOOM = 48 / 17;
 // 데드존(화면 정중앙 기준 이 비율 안쪽으로는 카메라가 안 움직임) - 0.4면 사용자 기준
 // "정중앙 0, 모서리 100" 스케일의 40 지점부터 카메라가 반응하기 시작한다는 뜻과 같다.
 export const CAMERA_DEADZONE_RATIO = 0.4;
@@ -220,7 +224,7 @@ export const ANIM_FRAME_TOGGLE_MS = 300;
 
 // 화면 우측 하단에 표시되는 빌드 표시 — index.html의 캐시 무효화 ?v= 값과 항상 같이 올린다.
 // 코드를 바꿀 때마다 갱신해서, 새로고침한 화면이 실제로 최신 코드인지 눈으로 바로 확인할 수 있게 한다.
-export const BUILD_VERSION = '20260809-2';
+export const BUILD_VERSION = '20260809-3';
 
 // core/updateCheck.js가 대기(타이틀) 화면에서 이 간격마다 index.html을 다시 받아와 서버의
 // 최신 버전과 비교한다 - NAS에 새 파일을 올려도 이미 열려 있는 탭은 스스로 알 방법이 없어서
