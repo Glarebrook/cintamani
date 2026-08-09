@@ -21,12 +21,11 @@ export const TEST_BUILDS = [
     viewportOverrides: {},
   },
   {
-    id: 'enemy-spawn-fast',
-    version: '실험: 몹 생성 속도 UP',
-    description: '적 생성 간격을 절반으로 줄임(더 자주 생성)',
+    id: 'passthrough-grace-buffer',
+    version: '실험: 포획 후 무적 버퍼',
+    description: '적을 감싸서 없앤 뒤 3틱 동안은 고리 안 어디를 밟든 상관없이 몸에 부딪혀도 안 죽음(무적 상태는 뱀 전체가 반투명 흰색/골드로 표시됨)',
     statsOverrides: {
-      enemySpawnMinMs: 1500,
-      enemySpawnMaxMs: 3500,
+      passThroughGraceTicks: 3,
     },
     viewportOverrides: {},
   },

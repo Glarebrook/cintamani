@@ -2,6 +2,7 @@ import {
   ENEMY_SCALE, PROJECTILE_SIZE_RATIO, BUILD_VERSION, ITEM_FLASH_ALPHA,
   GRID_W, GRID_H, PLAYABLE_MIN_X, PLAYABLE_MIN_Y, PLAYABLE_MAX_X, PLAYABLE_MAX_Y, FIELD_WALL_COLOR,
   FIELD_WALL_BORDER_COLOR, FIELD_WALL_BORDER_WIDTH,
+  PASS_THROUGH_GRACE_TINT_COLOR, PASS_THROUGH_GRACE_TINT_ALPHA,
 } from '../config/constants.js';
 import { toScreenX, toScreenY, screenCellSize, getViewportPixelSize } from '../core/gridMath.js';
 // CAMERA_ZOOM은 테스트 빌드가 런타임에 덮어쓸 수 있어서(core/viewportConfig.js)
@@ -129,6 +130,19 @@ function fallbackSnakeLayer(ctx, world, camera, C, snake, segments) {
     }
     ctx.globalAlpha = 1;
   }
+
+  // 포획 후 무적 유예(실험, world.passThroughGraceTicksLeft - states/playingState.js 참고) -
+  // 위 아이템 반짝임과 달리 머리→꼬리로 흘러가는 웨이브가 아니라, 활성 상태인 동안 몸 전체를
+  // 계속 같은 색으로 덮어서 "지금은 몸에 부딪혀도 안 죽는다"는 상태 자체를 보여준다.
+  if (world.passThroughGraceTicksLeft > 0) {
+    ctx.globalAlpha = PASS_THROUGH_GRACE_TINT_ALPHA;
+    ctx.fillStyle = PASS_THROUGH_GRACE_TINT_COLOR;
+    for (let i = 0; i < segments.length; i++) {
+      const s = segments[i];
+      ctx.fillRect(toScreenX(s.x, camera), toScreenY(s.y, camera), C, C);
+    }
+    ctx.globalAlpha = 1;
+  }
 }
 
 // segments[i]에 그릴 스프라이트 소스 사각형을 정한다 - 머리(0번)는 진행 방향(snake.dir),
@@ -193,20 +207,27 @@ function tintSprite(sheet, rect, size, color, alpha) {
 // 스프라이트 자체가 이미 이어진 모양이라 척추선(fallbackSnakeLayer 참고)은 더 이상
 // 필요 없다 - 오히려 그려진 뱀 위에 선이 하나 더 그어지는 게 어색해서 여기서는 안 그린다.
 function spriteSnakeLayer(ctx, world, sheet, camera, C, snake, segments) {
+  // 무적 유예(위 fallbackSnakeLayer 참고)는 아이템 반짝임과 동시에 활성 상태일 수도 있어서
+  // (드물지만 가능) 두 틴트를 서로 배타적으로 처리하지 않고, 기본 스프라이트 위에 필요한
+  // 만큼 순서대로 겹쳐 그린다 - tintSprite는 매번 원본 스프라이트를 다시 그려서 틴트를
+  // 입히므로, 그 결과 위에 또 다른 틴트를 겹쳐 그려도 시각적으로는 두 색이 함께 보인다.
+  const graceActive = world.passThroughGraceTicksLeft > 0;
   for (let i = segments.length - 1; i >= 0; i--) {
     const rect = resolveSpriteRect(snake, i);
     const s = segments[i];
     const dx = toScreenX(s.x, camera);
     const dy = toScreenY(s.y, camera);
 
+    ctx.drawImage(sheet, rect.sx, rect.sy, rect.sw, rect.sh, dx, dy, C, C);
+
     if (snake.flashColor && snake.isFlashingAt(i)) {
       const tinted = tintSprite(sheet, rect, C, snake.flashColor, ITEM_FLASH_ALPHA);
-      if (tinted) {
-        ctx.drawImage(tinted, dx, dy);
-        continue;
-      }
+      if (tinted) ctx.drawImage(tinted, dx, dy);
     }
-    ctx.drawImage(sheet, rect.sx, rect.sy, rect.sw, rect.sh, dx, dy, C, C);
+    if (graceActive) {
+      const tinted = tintSprite(sheet, rect, C, PASS_THROUGH_GRACE_TINT_COLOR, PASS_THROUGH_GRACE_TINT_ALPHA);
+      if (tinted) ctx.drawImage(tinted, dx, dy);
+    }
   }
 }
 

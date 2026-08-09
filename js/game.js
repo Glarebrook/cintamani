@@ -1,7 +1,7 @@
 import {
   TICK_MS, PROJECTILE_DAMAGE, SNAKE_INITIAL_LENGTH, TEST_MODE_INITIAL_LENGTH, TEST_MODE_TICK_MS,
   SCALE_WAVE_UNLOCK_CHASER_KILLS, SCALE_WAVE_DAMAGE, TEST_MODE_CINTAMANI_COUNT,
-  ENEMY_SPAWN_MIN_MS, ENEMY_SPAWN_MAX_MS,
+  ENEMY_SPAWN_MIN_MS, ENEMY_SPAWN_MAX_MS, PASS_THROUGH_GRACE_TICKS,
 } from './config/constants.js';
 import { TEST_BUILDS } from './config/testBuilds.js';
 import { chaserEnemy } from './content/enemies/chaser.js';
@@ -113,6 +113,9 @@ function createWorld() {
       // _randomSpawnDelay 참고).
       enemySpawnMinMs: ENEMY_SPAWN_MIN_MS,
       enemySpawnMaxMs: ENEMY_SPAWN_MAX_MS,
+      // 포획 후 무적 유예 - 기본 0(기존 방식). 테스트 빌드의 statsOverrides가 이 값을
+      // 덮어쓰면 states/playingState.js의 onTick이 고정 틱 버퍼 방식으로 동작한다.
+      passThroughGraceTicks: PASS_THROUGH_GRACE_TICKS,
       enemyKillStacks: {},
       killsByType,
       cintamani: {

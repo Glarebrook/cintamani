@@ -111,6 +111,19 @@ export const ENEMY_CAPTURE_ZONE_SCALE = 5; // 파란색 적의 포획 범위(회
 export const CAPTURE_ZONE_MIN_SPAWN_DISTANCE = ENEMY_SCALE * ENEMY_CAPTURE_ZONE_SCALE;
 export const LONG_SNAKE_UNLOCK_LENGTH = 20; // 뱀 길이가 이 이상이어야 스폰 가능한 적들의 공통 기준 (2번/4번적)
 
+// 포획(encirclement) 직후 자기 몸을 통과해도 안 죽는 유예 - 기본값 0은 기존 방식(고리
+// 안에서 빈 칸을 밟으면 즉시 풀리고, 자기충돌이 이어지는 동안만 유지 - states/playingState.js
+// 참고) 그대로 동작한다는 뜻이다. 0보다 크면, 포획 시점부터 그 틱 수 동안은 고리 안에서
+// 뭘 밟든 상관없이 무조건 통과를 허용하는 실험 방식으로 완전히 대체된다 - 고리 안 빈 칸을
+// 밟는 순간 봐주기가 풀려버리던 문제(플레이어 피드백)의 대안. config/testBuilds.js의
+// "실험실 2번"이 이 값을 3으로 덮어쓴다.
+export const PASS_THROUGH_GRACE_TICKS = 0;
+// 위 유예가 활성 상태인 동안 뱀 전체를 덮는 반투명 색 - 아이템 섭취 시 머리→꼬리로 흘러가는
+// 반짝임(ITEM_FLASH_*)과는 다르게, 흐르지 않고 활성 상태 내내 몸 전체를 계속 같은 색으로
+// 덮어서 "지금은 몸에 부딪혀도 안 죽는다"는 상태 자체를 알려준다.
+export const PASS_THROUGH_GRACE_TINT_COLOR = '#ffffff';
+export const PASS_THROUGH_GRACE_TINT_ALPHA = 0.55;
+
 // 처치/포획 보상으로 나오는 먹이 조건 — 어떤 적 번호가 이 보상을 트리거하는지는 종종 재배정되므로
 // (예: 원래 3번적이 갖던 보라 먹이 스택 보상이 1번적으로 옮겨감), 이름을 트리거 적이 아니라
 // 보상 자체 기준으로 짓는다.
@@ -200,7 +213,7 @@ export const BLUE_CINTAMANI_RAIN_PARTICLE_LIFE_MS = 500; // 빗방울 한 개가
 
 // 화면 우측 하단에 표시되는 빌드 표시 — index.html의 캐시 무효화 ?v= 값과 항상 같이 올린다.
 // 코드를 바꿀 때마다 갱신해서, 새로고침한 화면이 실제로 최신 코드인지 눈으로 바로 확인할 수 있게 한다.
-export const BUILD_VERSION = '20260803-34';
+export const BUILD_VERSION = '20260809-1';
 
 // core/updateCheck.js가 대기(타이틀) 화면에서 이 간격마다 index.html을 다시 받아와 서버의
 // 최신 버전과 비교한다 - NAS에 새 파일을 올려도 이미 열려 있는 탭은 스스로 알 방법이 없어서

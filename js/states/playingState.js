@@ -78,7 +78,15 @@ export function createPlayingState({ world, ctx, statusPanel }) {
   // 포획이 일어난 틱에 뱀 머리가 항상 몸과 정확히 겹치는 건 아니다 — 빈 칸으로 이동하며
   // 고리가 자연스럽게 닫히는 경우도 많다. 그래서 "봐주기"를 그 순간 한 틱으로 한정하지 않고,
   // 포획 이후 뱀이 자기 몸에서 완전히 벗어날 때까지(자기충돌이 안 나는 틱이 나올 때까지) 유지한다.
+  // 이 방식의 문제(플레이어 피드백으로 확인됨): 고리 안에 빈 칸이 있으면 그걸 한 번만 밟아도
+  // passThroughGrace가 꺼져버려서, 그 뒤에 진짜로 몸을 넘어 나가려는 순간엔 이미 봐주기가
+  // 풀린 상태로 죽는다 - "판정이 이상하다"는 느낌의 실제 원인일 가능성이 높다.
   let passThroughGrace = false;
+  // 실험(config/testBuilds.js의 "실험실 2번", world.stats.passThroughGraceTicks): 위 문제의
+  // 대안으로, 포획 시점부터 고정 틱 수 동안은 고리 안에서 뭘 밟든 상관없이 무조건 통과를
+  // 허용하는 방식 - world.stats.passThroughGraceTicks가 0(기본값)이면 기존 방식 그대로 쓰고,
+  // 0보다 크면 이 카운트다운 방식으로 완전히 대체된다(onTick 참고).
+  let passThroughGraceTicksLeft = 0;
   let paused = false;
   let pauseStartedAt = 0;
   // 잠금 해제 튜토리얼 팝업 - null이면 안 보이는 상태. { iconKey, iconColor, title, lines }면
@@ -258,6 +266,8 @@ export function createPlayingState({ world, ctx, statusPanel }) {
       Input.reset();
       pendingDirection = null;
       passThroughGrace = false;
+      passThroughGraceTicksLeft = 0;
+      world.passThroughGraceTicksLeft = 0;
       paused = false;
       activeTutorial = null;
       chargeStartAt = null;
@@ -347,11 +357,25 @@ export function createPlayingState({ world, ctx, statusPanel }) {
       const capturedThisTick = capturedIds.length > 0;
 
       const self = checkSelfCollision(world, mechanicResults);
-      if (self.collided) {
-        if (!self.forgiven && !passThroughGrace) return die();
-        passThroughGrace = true; // 아직 몸 안에 있을 수 있으니 다음 틱에도 통과 허용 유지
+      const graceBufferTicks = world.stats.passThroughGraceTicks;
+      if (graceBufferTicks > 0) {
+        // 실험실 2번 - 판정에는 "이번 틱이 시작될 때" 값을 쓰고, 다음 틱을 위한 갱신은 그
+        // 뒤에 한다(순서를 바꾸면 버퍼의 마지막 보호 틱이 판정에서 빠져버린다).
+        const ticksLeftNow = passThroughGraceTicksLeft;
+        if (self.collided && !self.forgiven && ticksLeftNow <= 0) return die();
+        passThroughGraceTicksLeft = capturedThisTick ? graceBufferTicks : Math.max(0, ticksLeftNow - 1);
+        // 렌더링(render/layers.js)이 참고할 값 - 방금 감소시킨 값이 아니라 "이번 틱 판정에
+        // 실제로 쓰인" 값을 노출해야, 버퍼의 마지막 보호 틱에도 무적 표시가 정확히 남는다.
+        world.passThroughGraceTicksLeft = capturedThisTick ? graceBufferTicks : ticksLeftNow;
       } else {
-        passThroughGrace = capturedThisTick; // 방금 막 포획됐다면(충돌 없이) 다음 틱까지는 통과 여지를 남겨둠
+        // 기존 방식 - 자기충돌이 이어지는 동안만 유지되고, 빈 칸에 착지하면 풀린다.
+        if (self.collided) {
+          if (!self.forgiven && !passThroughGrace) return die();
+          passThroughGrace = true; // 아직 몸 안에 있을 수 있으니 다음 틱에도 통과 허용 유지
+        } else {
+          passThroughGrace = capturedThisTick; // 방금 막 포획됐다면(충돌 없이) 다음 틱까지는 통과 여지를 남겨둠
+        }
+        world.passThroughGraceTicksLeft = 0;
       }
 
       if (capturedIds.length) {
