@@ -11,6 +11,10 @@ import { EnemyTypes } from '../content/enemies/index.js';
 // drawIcon은 이미지 원본의 투명 여백을 잘라내고 그려서, 그림에 여백이 있어도 색깔 사각형
 // 폴백과 항상 같은 크기로 보이게 한다(직접 ctx.drawImage를 쓰지 않는 이유).
 import { getEnemyIcon, drawIcon } from '../render/statusIcons.js';
+// directionalSprite를 가진 타입(예: 3번적)의 이동 방향별 스프라이트 조각을 구하는 범용 로더 -
+// 특정 id를 여기서 하드코딩하지 않는다(getEnemyIcon 폴백 규칙 위에 한 단계 더 얹는 형태).
+import { getDirectionalSpriteRect } from '../render/enemySpriteSheets.js';
+import { dirFromDelta } from '../render/snakeSprites.js';
 
 export class EnemyManager {
   constructor() {
@@ -70,6 +74,10 @@ export class EnemyManager {
       if (nx < PLAYABLE_MIN_X || nx >= PLAYABLE_MAX_X || ny < PLAYABLE_MIN_Y || ny >= PLAYABLE_MAX_Y) continue;
       enemy.x = nx;
       enemy.y = ny;
+      // 이동형 적 전체에 공통으로 마지막 이동 방향을 기록해둔다 - render()가 이걸로 방향별
+      // 스프라이트를 고른다(directionalSprite가 없는 타입엔 그냥 안 쓰이는 값일 뿐이라
+      // 여기서 타입을 가려낼 필요가 없다).
+      enemy.facing = dirFromDelta(dir.x, dir.y) || enemy.facing;
     }
   }
 
@@ -218,14 +226,21 @@ export class EnemyManager {
       const x = toScreenX(enemy.x, camera) - (size - C) / 2;
       const y = toScreenY(enemy.y, camera) - (size - C) / 2;
 
-      // assets/enemies/enemy{id}.png가 있으면 그걸 그리고, 없으면 예전처럼 typeDef.color
-      // 색깔 네모로 대체한다 - 상태창 아이콘과 완전히 같은 폴백 규칙(getEnemyIcon).
-      const icon = getEnemyIcon(enemy.typeDef.id);
-      if (icon) {
-        drawIcon(ctx, icon, x, y, size, size);
+      // directionalSprite가 있는 타입(예: 3번적)은 이동 방향별 스프라이트시트 조각을 먼저
+      // 시도한다. 없거나(다른 타입) 아직 시트가 로딩 전이면 기존 정지 아이콘/색깔 폴백으로
+      // 넘어간다 - assets/enemies/enemy{id}.png가 있으면 그걸 그리고, 없으면 typeDef.color
+      // 색깔 네모로 대체한다(상태창 아이콘과 같은 폴백 규칙, getEnemyIcon).
+      const dirRect = getDirectionalSpriteRect(enemy.typeDef, enemy);
+      if (dirRect) {
+        ctx.drawImage(dirRect.img, dirRect.sx, dirRect.sy, dirRect.sw, dirRect.sh, x, y, size, size);
       } else {
-        ctx.fillStyle = enemy.typeDef.color;
-        ctx.fillRect(x, y, size, size);
+        const icon = getEnemyIcon(enemy.typeDef.id);
+        if (icon) {
+          drawIcon(ctx, icon, x, y, size, size);
+        } else {
+          ctx.fillStyle = enemy.typeDef.color;
+          ctx.fillRect(x, y, size, size);
+        }
       }
 
       ctx.fillStyle = '#ffffff';

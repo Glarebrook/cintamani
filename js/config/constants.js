@@ -211,9 +211,16 @@ export const BLUE_CINTAMANI_RAIN_PARTICLE_COUNT = 3; // 생성 간격마다 튀�
 export const BLUE_CINTAMANI_RAIN_PARTICLE_SPEED = 10; // 빗방울 이동 속도(칸/초)
 export const BLUE_CINTAMANI_RAIN_PARTICLE_LIFE_MS = 500; // 빗방울 한 개가 사라지기까지 걸리는 시간(ms)
 
+// 적/아이템의 2프레임(이상) 아이콘 애니메이션이 공통으로 쓰는 프레임 전환 간격(ms) -
+// render/enemySpriteSheets.js(적 이동 방향별 스프라이트), render/itemSprites.js(먹이 등
+// 아이템 아이콘 토글)가 각 typeDef에서 별도 frameMs를 안 주면 이 값을 기본으로 쓴다.
+// render/statusIcons.js의 getEnemyIcon()이 쓰는 기존 ENEMY_ANIM_FRAME_MS(정지 아이콘/상태창용,
+// 값은 같은 300이지만 별개 상수)와는 별개다 - 서로 다른 렌더 경로라 통합하지 않았다.
+export const ANIM_FRAME_TOGGLE_MS = 300;
+
 // 화면 우측 하단에 표시되는 빌드 표시 — index.html의 캐시 무효화 ?v= 값과 항상 같이 올린다.
 // 코드를 바꿀 때마다 갱신해서, 새로고침한 화면이 실제로 최신 코드인지 눈으로 바로 확인할 수 있게 한다.
-export const BUILD_VERSION = '20260809-1';
+export const BUILD_VERSION = '20260809-2';
 
 // core/updateCheck.js가 대기(타이틀) 화면에서 이 간격마다 index.html을 다시 받아와 서버의
 // 최신 버전과 비교한다 - NAS에 새 파일을 올려도 이미 열려 있는 탭은 스스로 알 방법이 없어서

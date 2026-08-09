@@ -29,6 +29,17 @@ export const chaserEnemy = {
   displayText: enemy => String(enemy.hp),
   collidesWithHead: true,
 
+  // 상/하/좌/우 이동 애니메이션 - assets/enemies/enemy3_sprite.png(4행×2열, 행별 방향 배치는
+  // assets/enemies/README.md 참고). enemy.facing은 managers/enemyManager.js의 updateMovement가
+  // 실제로 이동이 일어날 때마다 갱신해준다(directionalSprite가 없는 다른 이동형 적에도 똑같이
+  // facing이 기록되지만, 그 타입들은 이 필드가 없어서 그냥 안 쓰일 뿐이다).
+  directionalSprite: {
+    path: 'assets/enemies/enemy3_sprite.png',
+    rows: { N: 0, S: 1, W: 2, E: 3 },
+    rowCount: 4,
+    cols: 2,
+  },
+
   moveIntervalMs(enemy, world) {
     return isPlayerInRange(enemy, world.snake) ? CHASER_BASE_MOVE_MS / 2 : CHASER_BASE_MOVE_MS;
   },

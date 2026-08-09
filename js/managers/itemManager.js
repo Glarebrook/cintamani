@@ -4,6 +4,10 @@ import {
 } from '../config/constants.js';
 import { toScreenX, toScreenY, screenCellSize } from '../core/gridMath.js';
 import { ItemTypes } from '../content/items/index.js';
+// def.icon을 가진 타입(예: 기본 먹이)의 애니메이션 아이콘을 구하는 범용 로더 - 특정 아이템 id를
+// 여기서 하드코딩하지 않는다. drawIcon은 managers/enemyManager.js와 같은 이유로 재사용한다.
+import { getItemIcon } from '../render/itemSprites.js';
+import { drawIcon } from '../render/statusIcons.js';
 
 export class ItemManager {
   constructor() {
@@ -112,8 +116,16 @@ export class ItemManager {
       const def = ItemTypes.get(food.type);
       const x = toScreenX(food.x, camera);
       const y = toScreenY(food.y, camera);
-      ctx.fillStyle = def.color;
-      ctx.fillRect(x, y, C, C);
+
+      // def.icon이 있고 프레임이 다 로딩됐으면 그걸 그리고, 아니면 기존 색깔 사각형으로 대체한다
+      // (적 렌더링과 같은 폴백 규칙).
+      const icon = getItemIcon(def);
+      if (icon) {
+        drawIcon(ctx, icon, x, y, C, C);
+      } else {
+        ctx.fillStyle = def.color;
+        ctx.fillRect(x, y, C, C);
+      }
 
       if (def.overlayText) {
         ctx.fillStyle = '#ffffff';
