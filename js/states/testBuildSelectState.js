@@ -17,8 +17,9 @@ export function createTestBuildSelectState({ ctx, statusPanel, onSelect, onBack 
       });
       Actions.bind('Escape', onBack);
       // touch-1/2/3은 이미 존재하는 버튼(원래 인게임 여의주 디버그용)을 그대로 재사용한다 -
-      // 이 화면에선 빌드 선택 숫자키로 의미가 바뀐다. 지금 TEST_BUILDS가 3개뿐이라 딱 맞는다.
-      setTouchActionButtons(['touch-1', 'touch-2', 'touch-3']);
+      // 이 화면에선 빌드 선택 숫자키로 의미가 바뀐다. TEST_BUILDS 개수만큼만 노출한다
+      // (touch-4 이상은 아직 버튼 자체가 없어 그 이상 늘어나면 버튼부터 추가해야 한다).
+      setTouchActionButtons(TEST_BUILDS.map((_, i) => `touch-${i + 1}`));
     },
     exit() {
       TEST_BUILDS.forEach((_, i) => Actions.unbind(String(i + 1)));

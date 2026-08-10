@@ -319,7 +319,8 @@ body {
 
 /* 테스트 모드 전용 여의주 디버그 버튼(1/2/3) - #touch-actions(2x2, SPACE가 커서 자리가
    꽉 참) 위로 별도 줄을 하나 더 만들어 가로로 배치한다. 테스트 모드가 아닐 때는
-   js/input/touchControls.js의 setTouchActionButtons가 display:none으로 숨긴다. */
+   js/input/touchControls.js의 setTouchActionButtons가 display:none으로 숨긴다. 같은 버튼을
+   테스트 빌드 선택 화면(states/testBuildSelectState.js)에서 빌드 선택 숫자키로도 재사용한다. */
 #touch-debug {
   position: absolute;
   right: 16px;
