@@ -10,6 +10,14 @@
 //   속성만 토글하면 되게 하기 위함). 생략하면 기본값 true(노출)로 취급한다.
 export const PATCH_NOTES = [
   {
+    version: '2.10.6',
+    datetime: '2026-08-10 00:00',
+    visible: true,
+    lines: [
+      '먹이 이미지가 1.3배 크게 보이도록 변경 - 먹는 판정(히트박스)은 그대로라 실제로 닿아야 하는 범위는 이전과 동일함',
+    ],
+  },
+  {
     version: '2.10.5',
     datetime: '2026-08-10 00:00',
     visible: true,

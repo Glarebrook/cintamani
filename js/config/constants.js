@@ -74,6 +74,12 @@ export const TEST_MODE_CINTAMANI_COUNT = 10; // 테스트 모드 시작 시 여�
 export const FOOD_SPAWN_MIN_MS = 2250; // 무작위 먹이 등장 최소 간격(ms) - 매번 재추첨
 export const FOOD_SPAWN_MAX_MS = 5250; // 무작위 먹이 등장 최대 간격(ms)
 export const FOOD_MAX_COUNT = 5; // 무작위 타이머로 유지되는 화면 최대 먹이 수(밸런스 재조정: 10->5, 직전 값의 절반) - 처치/포획 보상 스폰은 이 상한과 무관
+// 먹이를 그리는 크기만 키우는 순전히 시각적인 배율 - 히트박스(먹기 판정)는 managers/itemManager.js의
+// checkHeadCollision이 격자 좌표만 비교하는 방식이라 이 값과 무관하게 그대로 유지된다. 뱀/적도
+// 같이 키우는 걸 검토했지만, 뱀은 몸통 타일이 옆 칸과 정확히 맞닿는 반복 무늬로 그려져 있어
+// 그림만 키우면 이음매가 겹쳐 어긋나 보이는 문제가 있고(새로 그려야 함), 적은 이번엔 범위 밖이라
+// 먹이만 우선 적용한다.
+export const FOOD_VISUAL_SCALE = 1.3;
 export const FOOD_BASE_GROWTH = 1; // 기본(초록) 먹이 1개당 성장 칸 수 — 다른 먹이의 배율 계산 기준
 export const FOOD_SPEED_DELTA_MS = 5; // 노랑/갈색 먹이가 뱀 이동 간격(ms)을 바꾸는 양
 export const MIN_TICK_MS = 40; // 속도 먹이를 아무리 먹어도 이동 간격이 이 아래로는 안 내려감
@@ -232,7 +238,7 @@ export const ANIM_FRAME_TOGGLE_MS = 300;
 
 // 화면 우측 하단에 표시되는 빌드 표시 — index.html의 캐시 무효화 ?v= 값과 항상 같이 올린다.
 // 코드를 바꿀 때마다 갱신해서, 새로고침한 화면이 실제로 최신 코드인지 눈으로 바로 확인할 수 있게 한다.
-export const BUILD_VERSION = '20260810-5';
+export const BUILD_VERSION = '20260810-6';
 
 // core/updateCheck.js가 대기(타이틀) 화면에서 이 간격마다 index.html을 다시 받아와 서버의
 // 최신 버전과 비교한다 - NAS에 새 파일을 올려도 이미 열려 있는 탭은 스스로 알 방법이 없어서

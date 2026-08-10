@@ -1,6 +1,6 @@
 import {
   PLAYABLE_MIN_X, PLAYABLE_MIN_Y, PLAYABLE_MAX_X, PLAYABLE_MAX_Y,
-  FOOD_SPAWN_MIN_MS, FOOD_SPAWN_MAX_MS, FOOD_MAX_COUNT,
+  FOOD_SPAWN_MIN_MS, FOOD_SPAWN_MAX_MS, FOOD_MAX_COUNT, FOOD_VISUAL_SCALE,
 } from '../config/constants.js';
 import { toScreenX, toScreenY, screenCellSize } from '../core/gridMath.js';
 import { ItemTypes } from '../content/items/index.js';
@@ -112,27 +112,34 @@ export class ItemManager {
 
   render(ctx, camera) {
     const C = screenCellSize();
+    // 그리는 크기만 FOOD_VISUAL_SCALE배로 키우고, 칸의 중심은 그대로 유지되도록 좌상단
+    // 좌표를 늘어난 만큼 절반씩 당겨준다 - 히트박스(checkHeadCollision)는 격자 좌표만 보므로
+    // 이 확대와 무관하게 그대로다.
+    const size = C * FOOD_VISUAL_SCALE;
+    const inset = (size - C) / 2;
     for (const food of this.foods) {
       const def = ItemTypes.get(food.type);
-      const x = toScreenX(food.x, camera);
-      const y = toScreenY(food.y, camera);
+      const x = toScreenX(food.x, camera) - inset;
+      const y = toScreenY(food.y, camera) - inset;
 
       // def.icon이 있고 프레임이 다 로딩됐으면 그걸 그리고, 아니면 기존 색깔 사각형으로 대체한다
       // (적 렌더링과 같은 폴백 규칙).
       const icon = getItemIcon(def);
       if (icon) {
-        drawIcon(ctx, icon, x, y, C, C);
+        drawIcon(ctx, icon, x, y, size, size);
       } else {
         ctx.fillStyle = def.color;
-        ctx.fillRect(x, y, C, C);
+        ctx.fillRect(x, y, size, size);
       }
 
       if (def.overlayText) {
+        const cx = toScreenX(food.x, camera) + C / 2;
+        const cy = toScreenY(food.y, camera) + C / 2;
         ctx.fillStyle = '#ffffff';
         ctx.font = `${Math.max(4, Math.floor(C * 0.9))}px CintamaniFont, monospace`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(def.overlayText, x + C / 2, y + C / 2);
+        ctx.fillText(def.overlayText, cx, cy);
       }
     }
   }
