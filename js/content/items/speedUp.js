@@ -6,6 +6,10 @@ import { FOOD_BASE_GROWTH, FOOD_SPEED_DELTA_MS, MIN_TICK_MS } from '../../config
 export const speedUpFood = {
   id: 'speedUp',
   color: '#e6c619',
+  // 0.3초 간격으로 두 프레임이 번갈아 그려지는 애니메이션 - assets/items/README.md 참고.
+  icon: {
+    framePaths: ['assets/items/food_yellow_0.png', 'assets/items/food_yellow_1.png'],
+  },
   spawnEligible: () => false,
   onPickup(world, item) {
     for (let i = 0; i < FOOD_BASE_GROWTH; i++) world.snake.scheduleGrowth(item);
