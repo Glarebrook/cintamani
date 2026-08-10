@@ -116,6 +116,9 @@ function createWorld() {
       // 포획 후 무적 유예 - 기본 0(기존 방식). 테스트 빌드의 statsOverrides가 이 값을
       // 덮어쓰면 states/playingState.js의 onTick이 고정 틱 버퍼 방식으로 동작한다.
       passThroughGraceTicks: PASS_THROUGH_GRACE_TICKS,
+      // 포획 판정을 "고리가 막 닫히는 순간"이 아니라 "머리가 실제로 몸통에 부딪히는 순간"으로
+      // 옮기는 실험 - 기본 false(기존 방식). content/mechanics/encirclement.js 참고.
+      captureRequiresCollision: false,
       enemyKillStacks: {},
       killsByType,
       cintamani: {

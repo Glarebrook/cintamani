@@ -5,6 +5,7 @@ import { renderPauseOverlay, renderTutorialPopup, renderChargeGauge } from '../r
 import { getWeaponIcon } from '../render/statusIcons.js';
 import {
   checkWallCollision,
+  isSelfCollision,
   runMechanicsTick,
   checkSelfCollision,
   checkEnemyHeadCollision,
@@ -352,11 +353,15 @@ export function createPlayingState({ world, ctx, statusPanel }) {
 
       if (checkWallCollision(world)) return die();
 
-      const mechanicResults = runMechanicsTick(world);
+      // 실험(world.stats.captureRequiresCollision)에서 encirclement.js가 "지금 이 틱이
+      // 충돌 중인가"를 포획 조건에 쓸 수 있도록, 메커니즘을 돌리기 전에 raw 자기충돌 여부를
+      // 먼저 계산해서 넘긴다. checkSelfCollision에도 같은 값을 그대로 넘겨 중복 계산을 피한다.
+      const selfCollided = isSelfCollision(world);
+      const mechanicResults = runMechanicsTick(world, selfCollided);
       const capturedIds = Object.values(mechanicResults).flatMap(result => result.capturedIds || []);
       const capturedThisTick = capturedIds.length > 0;
 
-      const self = checkSelfCollision(world, mechanicResults);
+      const self = checkSelfCollision(world, mechanicResults, selfCollided);
       const graceBufferTicks = world.stats.passThroughGraceTicks;
       if (graceBufferTicks > 0) {
         // 실험실 2번 - 판정에는 "이번 틱이 시작될 때" 값을 쓰고, 다음 틱을 위한 갱신은 그

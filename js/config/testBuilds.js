@@ -21,23 +21,13 @@ export const TEST_BUILDS = [
     viewportOverrides: {},
   },
   {
-    id: 'passthrough-grace-buffer',
-    version: '실험: 포획 후 무적 버퍼',
-    description: '적을 감싸서 없앤 뒤 3틱 동안은 고리 안 어디를 밟든 상관없이 몸에 부딪혀도 안 죽음(무적 상태는 뱀 전체가 반투명 흰색/골드로 표시됨)',
+    id: 'capture-on-collision',
+    version: '실험: 충돌해야 포획',
+    description: '몸으로 감싸기만 해서는 적이 안 사라짐. 감싼 상태를 유지한 채 머리가 실제로 몸통에 부딪히는 순간에만 적이 사라지고 무적이 시작됨(그 조건이 아니면 그대로 게임오버) - 포획 순간부터 3틱 동안은 고리 안 어디를 밟든 무적 유지',
     statsOverrides: {
+      captureRequiresCollision: true,
       passThroughGraceTicks: 3,
     },
     viewportOverrides: {},
-  },
-  {
-    id: 'wide-view',
-    version: '실험: 시야 확대',
-    description: '화면 배율을 낮춰 더 넓은 범위가 한눈에 보이도록 함',
-    statsOverrides: {},
-    viewportOverrides: {
-      cameraZoom: 1,
-      viewportCols: 96,
-      viewportRows: 72,
-    },
   },
 ];
