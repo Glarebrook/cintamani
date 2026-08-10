@@ -8,6 +8,10 @@ import { ATTACK_UP_DELTA, ATTACK_UP_SCALE_WAVE_DELTA } from '../../config/consta
 export const attackUpFood = {
   id: 'attackUp',
   color: '#ff8c1a',
+  // 0.3초 간격으로 두 프레임이 번갈아 그려지는 애니메이션 - assets/items/README.md 참고.
+  icon: {
+    framePaths: ['assets/items/food_red_0.png', 'assets/items/food_red_1.png'],
+  },
   spawnEligible: () => false,
   onPickup(world) {
     world.stats.attackDamage += ATTACK_UP_DELTA;

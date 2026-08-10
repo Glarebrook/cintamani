@@ -10,6 +10,10 @@ import { PURPLE_FOOD_GROWTH_AMOUNT } from '../../config/constants.js';
 export const tripleGrowthFood = {
   id: 'tripleGrowth',
   color: '#a855f7',
+  // 0.3초 간격으로 두 프레임이 번갈아 그려지는 애니메이션 - assets/items/README.md 참고.
+  icon: {
+    framePaths: ['assets/items/food_purple_0.png', 'assets/items/food_purple_1.png'],
+  },
   overlayText: `+${PURPLE_FOOD_GROWTH_AMOUNT}`,
   spawnEligible: () => false,
   onPickup(world, item) {

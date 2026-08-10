@@ -9,6 +9,9 @@
 |---|---|
 | `item1_a.png` | 기본 먹이(초록) 애니메이션 1번째 프레임 |
 | `item1_b.png` | 기본 먹이(초록) 애니메이션 2번째 프레임 - `item1_a.png`와 0.3초 간격으로 번갈아 그려짐 |
+| `food_purple_0.png` / `food_purple_1.png` | 보라 먹이(tripleGrowth) 애니메이션 |
+| `food_red_0.png` / `food_red_1.png` | 주황 먹이(attackUp) 애니메이션 |
+| `food_yellow_0.png` / `food_yellow_1.png` | 노랑 먹이(speedUp) 애니메이션 |
 
 ## 규격
 
