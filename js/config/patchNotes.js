@@ -10,6 +10,14 @@
 //   속성만 토글하면 되게 하기 위함). 생략하면 기본값 true(노출)로 취급한다.
 export const PATCH_NOTES = [
   {
+    version: '2.10.7',
+    datetime: '2026-08-13 00:00',
+    visible: true,
+    lines: [
+      '연못 배경을 물빛·부유물·기포·비네트가 겹겹이 흐르는 다층 배경으로 전면 교체 - 층마다 스크롤 속도가 달라 깊이감이 생김',
+    ],
+  },
+  {
     version: '2.10.6',
     datetime: '2026-08-10 00:00',
     visible: true,

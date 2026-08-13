@@ -21,13 +21,42 @@ export const PLAYABLE_MIN_Y = FIELD_WALL_THICKNESS;
 export const PLAYABLE_MAX_X = GRID_W - FIELD_WALL_THICKNESS;
 export const PLAYABLE_MAX_Y = GRID_H - FIELD_WALL_THICKNESS;
 
-// 뱀이 움직이는 필드 안쪽(플레이 가능 영역)에 까는 연못 배경 애니메이션 -
-// assets/pond_flow_0~3.png(render/pondBackground.js가 로딩) 4장을 이 간격으로 순환한다.
-// 루프가 매끄럽게 이어지도록 만들어진 소스라 계속 반복해도 끊기는 지점이 없다.
-export const POND_ANIM_FRAME_MS = 230;
-// 이미지 한 장(정사각형 원본)을 화면에서 몇 칸 크기로 반복시킬지 - 값을 낮추면 물결 무늬가
-// 더 촘촘하게, 높이면 한 타일이 더 크게 보인다. 실제로 보면서 조정할 튜닝 값.
-export const POND_TILE_CELLS = 8;
+// 물 배경 - 6개 레이어를 패럴랙스(층마다 스크롤 속도를 다르게)로 쌓는다
+// (render/backgroundLayers.js가 assets/background/bg_1~6_*.png를 로딩,
+// render/layers.js가 그린다). 2026-08-13, 기존 단일 애니메이션 타일(pond_flow_0~3.png,
+// POND_ANIM_FRAME_MS/POND_TILE_CELLS 한 쌍짜리 방식) 대체.
+//
+// 각 *_TILE_CELLS는 그 레이어의 정사각형 원본 이미지 한 장을 몇 칸 크기로 반복시킬지 -
+// 값을 낮추면 무늬가 촘촘하게, 높이면 한 타일이 크게 보인다. 베이스/빛기둥은 일부러 뷰포트
+// (68칸)보다 큰 타일로 잡아서 반복이 눈에 잘 안 띄게 했다. 코스틱은 기존 POND_TILE_CELLS와
+// 같은 값(8)을 그대로 재사용 - 이미 실제로 보면서 튜닝됐던 값이라 그대로 가져왔다.
+export const BG_BASE_TILE_CELLS = 72;
+export const BG_LIGHTSHAFTS_TILE_CELLS = 72;
+export const BG_CAUSTICS_TILE_CELLS = 8;
+export const BG_MOTES_TILE_CELLS = 16;
+export const BG_BUBBLES_TILE_CELLS = 16;
+
+// 코스틱 4프레임 순환 간격 - 루프가 매끄럽게 이어지도록 만들어진 소스라 계속 반복해도
+// 끊기는 지점이 없다. 기존 POND_ANIM_FRAME_MS와 같은 값(230ms)을 그대로 재사용.
+export const BG_CAUSTICS_FRAME_MS = 230;
+
+// 패럴랙스 배율 - world.camera 이동량에 이 값을 곱한 만큼만 이 층을 스크롤시킨다(1이면 다른
+// 모든 요소와 똑같이 움직이고, 0이면 화면에 고정). 앞(베이스)일수록 느리게, 뒤(기포)일수록
+// 빠르게 둬서 서로 어긋나며 스크롤되게 하면 깊이감이 난다 - 비네트는 아예 패럴랙스 없이
+// 화면 고정(아래 vignetteLayer 참고).
+export const BG_BASE_PARALLAX = 0.2;
+export const BG_LIGHTSHAFTS_PARALLAX = 0.3;
+export const BG_CAUSTICS_PARALLAX = 0.5;
+export const BG_MOTES_PARALLAX = 0.7;
+export const BG_BUBBLES_PARALLAX = 0.8;
+
+// 각 레이어를 얼마나 진하게 얹을지 - 코스틱/빛기둥/부유물은 가산(additive) 블렌드라 알파를
+// 낮게 잡아야 과하게 하얗게 뜨지 않는다(실제로 보면서 조정할 튜닝 값).
+export const BG_LIGHTSHAFTS_ALPHA = 0.5;
+export const BG_CAUSTICS_ALPHA = 0.6;
+export const BG_MOTES_ALPHA = 0.35;
+export const BG_BUBBLES_ALPHA = 0.5;
+export const BG_VIGNETTE_ALPHA = 0.9;
 
 // 카메라/뷰포트 - 화면(게임 캔버스)에 "한 번에 보이는" 칸 수와 확대 배율. GRID_W/GRID_H(필드
 // 전체 크기)와는 별개 개념이다 - 필드가 뷰포트보다 크면 core/camera.js가 그 안을 스크롤한다.
@@ -238,7 +267,7 @@ export const ANIM_FRAME_TOGGLE_MS = 300;
 
 // 화면 우측 하단에 표시되는 빌드 표시 — index.html의 캐시 무효화 ?v= 값과 항상 같이 올린다.
 // 코드를 바꿀 때마다 갱신해서, 새로고침한 화면이 실제로 최신 코드인지 눈으로 바로 확인할 수 있게 한다.
-export const BUILD_VERSION = '20260810-6';
+export const BUILD_VERSION = '20260813-1';
 
 // core/updateCheck.js가 대기(타이틀) 화면에서 이 간격마다 index.html을 다시 받아와 서버의
 // 최신 버전과 비교한다 - NAS에 새 파일을 올려도 이미 열려 있는 탭은 스스로 알 방법이 없어서

@@ -1,7 +1,10 @@
 import {
   ENEMY_SCALE, PROJECTILE_SIZE_RATIO, BUILD_VERSION, ITEM_FLASH_ALPHA,
   GRID_W, GRID_H, PLAYABLE_MIN_X, PLAYABLE_MIN_Y, PLAYABLE_MAX_X, PLAYABLE_MAX_Y, FIELD_WALL_COLOR,
-  FIELD_WALL_BORDER_COLOR, FIELD_WALL_BORDER_WIDTH, POND_TILE_CELLS,
+  FIELD_WALL_BORDER_COLOR, FIELD_WALL_BORDER_WIDTH,
+  BG_BASE_TILE_CELLS, BG_LIGHTSHAFTS_TILE_CELLS, BG_CAUSTICS_TILE_CELLS, BG_MOTES_TILE_CELLS, BG_BUBBLES_TILE_CELLS,
+  BG_BASE_PARALLAX, BG_LIGHTSHAFTS_PARALLAX, BG_CAUSTICS_PARALLAX, BG_MOTES_PARALLAX, BG_BUBBLES_PARALLAX,
+  BG_LIGHTSHAFTS_ALPHA, BG_CAUSTICS_ALPHA, BG_MOTES_ALPHA, BG_BUBBLES_ALPHA, BG_VIGNETTE_ALPHA,
   PASS_THROUGH_GRACE_TINT_COLOR, PASS_THROUGH_GRACE_TINT_ALPHA,
 } from '../config/constants.js';
 import { toScreenX, toScreenY, screenCellSize, getViewportPixelSize } from '../core/gridMath.js';
@@ -10,7 +13,9 @@ import { toScreenX, toScreenY, screenCellSize, getViewportPixelSize } from '../c
 import { getViewportConfig } from '../core/viewportConfig.js';
 import { getCaptureZoneBounds } from '../content/mechanics/encirclement.js';
 import { getSnakeSpriteSheet, getHeadRect, getTailRect, getBodyRect, dirFromDelta } from './snakeSprites.js';
-import { getPondFrame } from './pondBackground.js';
+import {
+  getBaseWaterImage, getLightshaftsImage, getCausticsFrame, getMotesImage, getBubblesImage, getVignetteImage,
+} from './backgroundLayers.js';
 
 const COLOR = {
   bg:   '#111111',
@@ -23,35 +28,75 @@ const COLOR = {
 // 그려지는 모든 것이 함께 따라 움직인다. 뷰포트 자체의 픽셀 크기(배경/오버레이용)는
 // getViewportPixelSize()로 구한다 - 필드 전체 크기(GRID_W*CELL_SIZE)와는 이제 다른 값이다.
 
-// 뱀이 실제로 움직일 수 있는 안쪽(PLAYABLE_MIN/MAX)에만 연못 이미지를 깐다 - 회색 벽 테두리는
-// 그 위에 fieldBorderLayer가 따로 덧그리므로 이 함수가 신경 쓸 필요 없다. 이미지가 아직 다
-// 로딩되기 전이면(render/pondBackground.js) 위에서 채운 기존 검은 배경이 그대로 보인다.
-function backgroundLayer(ctx, world) {
+// 물 배경(render/backgroundLayers.js) 중 패럴랙스 타일 5장(베이스/빛기둥/코스틱/부유물/기포)이
+// 공유하는 그리기 로직 - 뷰포트 전체를 채운다(플레이 가능 영역만 잘라내지 않는 이유: 벽 바깥
+// 영역은 뒤이어 그려지는 fieldBorderLayer가 항상 덧칠하므로 그 아래에 뭐가 있든 상관없다).
+// parallaxFactor(0~1)만큼만 camera 이동을 반영해서, 층마다 다른 속도로 스크롤되게 한다(1이면
+// 다른 모든 요소와 같은 속도, 0에 가까울수록 화면에 거의 고정된 것처럼 느리게 움직임) -
+// toScreenX/Y(항상 1:1 배율)를 그대로 쓰지 않고 카메라 항에만 배율을 곱하는 이유가 이것.
+// blend가 주어지면(예: 'lighter') 그 합성 모드로, 아니면 기본 알파 합성으로 얹는다.
+function drawParallaxTile(ctx, world, image, tileCells, parallaxFactor, alpha, blend) {
+  if (!image) return;
+  const { width, height } = getViewportPixelSize();
+  const camera = world.camera;
+  const C = screenCellSize();
+  const tileSize = C * tileCells;
+
+  const pattern = ctx.createPattern(image, 'repeat');
+  const scale = tileSize / image.naturalWidth;
+  pattern.setTransform(new DOMMatrix()
+    .translate(-camera.x * parallaxFactor * C, -camera.y * parallaxFactor * C)
+    .scale(scale));
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  if (blend) ctx.globalCompositeOperation = blend;
+  ctx.fillStyle = pattern;
+  ctx.fillRect(0, 0, width, height);
+  ctx.restore();
+}
+
+// 1) 베이스 물색 - 불투명, 반복을 깨는 큰 명암 얼룩이 들어간 단일 텍스처. 이미지가 아직
+// 로딩 전이면(render/backgroundLayers.js) 여기서 채운 기존 검은 배경이 그대로 보인다.
+function baseWaterLayer(ctx, world) {
   const { width, height } = getViewportPixelSize();
   ctx.fillStyle = COLOR.bg;
   ctx.fillRect(0, 0, width, height);
+  drawParallaxTile(ctx, world, getBaseWaterImage(), BG_BASE_TILE_CELLS, BG_BASE_PARALLAX, 1, null);
+}
 
-  const frame = getPondFrame();
-  if (!frame) return;
+// 2) 수면 빛기둥 - 가산 블렌드로 얹어서 물빛이 비치는 느낌을 낸다.
+function lightshaftsLayer(ctx, world) {
+  drawParallaxTile(ctx, world, getLightshaftsImage(), BG_LIGHTSHAFTS_TILE_CELLS, BG_LIGHTSHAFTS_PARALLAX, BG_LIGHTSHAFTS_ALPHA, 'lighter');
+}
 
-  const camera = world.camera;
-  const C = screenCellSize();
-  const tileSize = C * POND_TILE_CELLS;
+// 3) 흐르는 빛물결(코스틱) - 이음매 없이 타일 반복되는 4프레임 애니메이션, 가산 블렌드.
+function causticsLayer(ctx, world) {
+  drawParallaxTile(ctx, world, getCausticsFrame(), BG_CAUSTICS_TILE_CELLS, BG_CAUSTICS_PARALLAX, BG_CAUSTICS_ALPHA, 'lighter');
+}
 
-  const pattern = ctx.createPattern(frame, 'repeat');
-  // 패턴을 "화면"이 아니라 "필드(격자 0,0)"에 고정한다 - toScreenX/Y(0, camera)만큼 옮기고
-  // 원본 이미지가 화면에서 tileSize px가 되도록 축소/확대하면, 카메라가 움직일 때 이 물 무늬도
-  // toScreenX/Y로 그리는 다른 모든 것과 똑같이 같이 스크롤된다(둘 다 같은 camera.x/y를 반영).
-  const scale = tileSize / frame.naturalWidth;
-  pattern.setTransform(new DOMMatrix()
-    .translate(toScreenX(0, camera), toScreenY(0, camera))
-    .scale(scale));
+// 4) 떠다니는 미세 부유물 - 가산 블렌드.
+function motesLayer(ctx, world) {
+  drawParallaxTile(ctx, world, getMotesImage(), BG_MOTES_TILE_CELLS, BG_MOTES_PARALLAX, BG_MOTES_ALPHA, 'lighter');
+}
 
-  ctx.fillStyle = pattern;
-  ctx.fillRect(
-    toScreenX(PLAYABLE_MIN_X, camera), toScreenY(PLAYABLE_MIN_Y, camera),
-    (PLAYABLE_MAX_X - PLAYABLE_MIN_X) * C, (PLAYABLE_MAX_Y - PLAYABLE_MIN_Y) * C
-  );
+// 5) 기포 무리 - 일반 알파 합성(가이드에서 코스틱/빛기둥/부유물만 가산으로 지정했고 기포는
+// 빠져 있음 - 흰 기포까지 가산이면 너무 밝게 튄다).
+function bubblesLayer(ctx, world) {
+  drawParallaxTile(ctx, world, getBubblesImage(), BG_BUBBLES_TILE_CELLS, BG_BUBBLES_PARALLAX, BG_BUBBLES_ALPHA, null);
+}
+
+// 6) 비네트 - 뱀/적/아이템 등 오브젝트 전부를 그린 "다음"에 덧그려야 가장자리가 오브젝트에도
+// 살짝 걸려 통일감이 난다(가이드 요청) - 그래서 layers 배열 맨 끝(versionLayer 바로 앞)에
+// 둔다. 패럴랙스 없이 화면(뷰포트)에 고정 - camera를 전혀 참조하지 않는다.
+function vignetteLayer(ctx) {
+  const img = getVignetteImage();
+  if (!img) return;
+  const { width, height } = getViewportPixelSize();
+  ctx.save();
+  ctx.globalAlpha = BG_VIGNETTE_ALPHA;
+  ctx.drawImage(img, 0, 0, width, height);
+  ctx.restore();
 }
 
 // 필드 가장자리의 "벽" - 실제로 뱀이 갈 수 있는 범위(PLAYABLE_MIN/MAX_X/Y) 바깥, 필드
@@ -446,6 +491,8 @@ export function versionLayer(ctx) {
 }
 
 export const layers = [
-  backgroundLayer, fieldBorderLayer, captureZoneLayer, blueRainLayer, itemLayer, scaleWaveLayer, redBeamLayer,
-  snakeLayer, projectileLayer, enemyLayer, particleLayer, scorePopupLayer, versionLayer,
+  baseWaterLayer, lightshaftsLayer, causticsLayer, motesLayer, bubblesLayer,
+  fieldBorderLayer, captureZoneLayer, blueRainLayer, itemLayer, scaleWaveLayer, redBeamLayer,
+  snakeLayer, projectileLayer, enemyLayer, particleLayer, scorePopupLayer,
+  vignetteLayer, versionLayer,
 ];

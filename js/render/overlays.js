@@ -7,7 +7,7 @@ import { toScreenX, toScreenY, screenCellSize, getViewportPixelSize } from '../c
 // 달라진다(core/gridMath.js의 getViewportPixelSize 참고).
 
 // 타이틀 화면은 아직 world가 시작 전이라 그 위에 겹쳐 그리는 오버레이가 아니라
-// 화면 전체를 단독으로 채운다 — 배경색은 layers.js의 backgroundLayer와 동일하게 맞춘다.
+// 화면 전체를 단독으로 채운다 — 배경색은 layers.js의 baseWaterLayer 폴백 색과 동일하게 맞춘다.
 export function renderTitleScreen(ctx) {
   const { width: cw, height: ch } = getViewportPixelSize();
 
