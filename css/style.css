@@ -66,6 +66,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* main.js의 fitGameWrapperToViewport가 화면이 작을 때 여기에 scale()을 건다 - 위쪽/가로
+     중앙을 기준점으로 줄어들게 해서, body의 justify-content:center(가로 중앙 정렬) +
+     align-items:flex-start(위쪽 정렬) 배치 의도가 축소 후에도 그대로 유지되게 한다. */
+  transform-origin: top center;
 }
 
 /* width/height은 JS에서 내부 해상도와 1:1로 설정 → 정사각형 픽셀 보장 */
