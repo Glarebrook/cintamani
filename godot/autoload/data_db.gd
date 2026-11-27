@@ -10,6 +10,9 @@ const DATA_DIR := "res://data/"
 
 var stages: Dictionary = {}
 var obstacles: Dictionary = {}
+var enemies: Dictionary = {}
+var skills: Dictionary = {}
+var tutorials: Dictionary = {}
 var items: Dictionary = {}
 var dialogues: Dictionary = {}
 var characters: Dictionary = {}
@@ -25,6 +28,9 @@ func _ready() -> void:
 func reload() -> void:
 	stages = _load_json("stages.json")
 	obstacles = _load_json("obstacles.json")
+	enemies = _load_json("enemies.json")
+	skills = _load_json("skills.json")
+	tutorials = _load_json("tutorials.json")
 	items = _load_json("items.json")
 	dialogues = _load_json("dialogues.json")
 	characters = _load_json("characters.json")
@@ -34,6 +40,23 @@ func reload() -> void:
 
 func stage(id: String) -> Dictionary:
 	return stages.get(id, {})
+
+
+## 장애물(obstacles.json)과 적(enemies.json)을 한데 모은 목록. 스네이크 판은 둘을 똑같이 다룹니다.
+func creatures() -> Dictionary:
+	var all := obstacles.duplicate()
+	all.merge(enemies)
+	return all
+
+
+func creature(id: String) -> Dictionary:
+	if obstacles.has(id):
+		return obstacles[id]
+	return enemies.get(id, {})
+
+
+func tutorial(id: String) -> Dictionary:
+	return tutorials.get(id, {})
 
 
 func character(id: String) -> Dictionary:

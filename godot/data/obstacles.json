@@ -1,20 +1,32 @@
 {
 	"rock": {
 		"name": "바위",
+		"category": "terrain",
 		"color": "#8a8a8a",
-		"shape": "block",
-		"moves": false,
-		"on_hit": "die",
+		"shape": "rock",
+		"hp": 3,
+		"on_head_hit": "die",
+		"blocks_projectiles": true,
+		"drops": [
+			{ "item": "food", "weight": 5 },
+			{ "item": "speed_down", "weight": 3 },
+			{ "item": "attack_up", "weight": 1 },
+			{ "item": "", "weight": 3 }
+		],
 		"death_text": "바위에 머리를 박았다."
 	},
 	"crayfish": {
 		"name": "가재",
+		"category": "obstacle",
 		"color": "#d0503c",
 		"shape": "claws",
-		"moves": true,
-		"move_every_ticks": 3,
-		"on_hit": "shrink",
+		"hp": 2,
+		"on_head_hit": "shrink",
 		"shrink_amount": 2,
+		"move": { "ai": "wander", "interval_ms": 480 },
+		"drops": [
+			{ "item": "food", "weight": 1 }
+		],
 		"death_text": "가재에게 물려 몸이 다 없어졌다."
 	}
 }

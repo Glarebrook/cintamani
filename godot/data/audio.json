@@ -9,6 +9,12 @@
 		"eat": "res://assets/audio/sfx/eat.wav",
 		"hit": "res://assets/audio/sfx/hit.wav",
 		"die": "res://assets/audio/sfx/die.wav",
-		"clear": "res://assets/audio/sfx/clear.wav"
+		"clear": "res://assets/audio/sfx/clear.wav",
+		"kill": "res://assets/audio/sfx/kill.wav",
+		"venom": "res://assets/audio/sfx/venom.wav",
+		"scale_wave": "res://assets/audio/sfx/scale_wave.wav",
+		"cintamani_fire": "res://assets/audio/sfx/cintamani_fire.wav",
+		"unlock": "res://assets/audio/sfx/unlock.wav",
+		"boss": "res://assets/audio/sfx/boss.wav"
 	}
 }

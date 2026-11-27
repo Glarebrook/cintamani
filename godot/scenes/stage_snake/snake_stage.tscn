@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scenes/stage_snake/snake_stage.gd" id="1_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/status_panel.tscn" id="2_status"]
 [ext_resource type="PackedScene" path="res://scenes/ui/dialogue_box.tscn" id="3_dialogue"]
 [ext_resource type="PackedScene" path="res://scenes/ui/pause_menu.tscn" id="4_pause"]
+[ext_resource type="PackedScene" path="res://scenes/ui/info_popup.tscn" id="5_popup"]
 
 [node name="SnakeStage" type="Node2D"]
 script = ExtResource("1_script")
@@ -13,5 +14,7 @@ script = ExtResource("1_script")
 [node name="StatusPanel" parent="UI" instance=ExtResource("2_status")]
 
 [node name="DialogueBox" parent="." instance=ExtResource("3_dialogue")]
+
+[node name="InfoPopup" parent="." instance=ExtResource("5_popup")]
 
 [node name="PauseMenu" parent="." instance=ExtResource("4_pause")]

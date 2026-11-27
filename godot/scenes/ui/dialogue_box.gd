@@ -51,7 +51,7 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not visible or not event.is_action_pressed("ui_accept"):
+	if not visible or not event.is_action_pressed("confirm"):
 		return
 	get_viewport().set_input_as_handled()
 	if not _is_line_complete():

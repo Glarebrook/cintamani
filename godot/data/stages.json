@@ -6,19 +6,41 @@
 		"grid_size": [30, 20],
 		"start_length": 3,
 		"tick_ms": 160,
-		"min_tick_ms": 80,
-		"speed_up_per_food_ms": 4,
+		"min_tick_ms": 70,
+		"max_tick_ms": 240,
+		"speed_level_step_ms": 8,
 		"food_max": 3,
 		"food_types": ["food"],
-		"obstacles": [
-			{ "type": "rock", "count": 8 },
+		"initial_obstacles": [
+			{ "type": "rock", "count": 10 },
 			{ "type": "crayfish", "count": 2 }
 		],
-		"clear_condition": { "length": 15 },
+		"enemy_spawn": {
+			"interval_ms": [2000, 4000],
+			"max_alive": 6,
+			"min_distance_from_head": 6,
+			"stop_during_boss": true,
+			"table": [
+				{ "type": "carp", "weight": 6 },
+				{ "type": "eel", "weight": 2, "min_length_gain": 10 },
+				{ "type": "pearl_clam", "weight": 1, "min_length_gain": 20 }
+			]
+		},
+		"skill_unlocks": {
+			"venom": { "length_gain": 5 },
+			"scale_wave": { "kills": { "carp": 5 } }
+		},
+		"cintamani_rewards": [
+			{ "element": "fire", "every_kills": { "carp": 10 } }
+		],
+		"boss": {
+			"type": "giant_catfish",
+			"requires": { "cintamani_collected": { "fire": 10 }, "length_gain": 50 },
+			"appear_dialogue": "pond_boss_appear",
+			"defeat_dialogue": "pond_clear"
+		},
 		"background_color": "#1d3b4a",
 		"bgm": "pond",
-		"intro_dialogue": "pond_intro",
-		"clear_dialogue": "pond_clear",
 		"next_stage": "land"
 	},
 	"land": {
