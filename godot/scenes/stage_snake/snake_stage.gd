@@ -118,6 +118,11 @@ func _handle_events() -> void:
 				for skill in Data.skills.values():
 					if skill.get("element", "") == ev["element"]:
 						_show_tutorial_once(skill.get("tutorial", ""))
+			"coil_hint":
+				_show_tutorial_once("coil")
+			"transformed":
+				AudioManager.play_sfx("hit")
+				_show_tutorial_once("eel_born")
 			"boss_ready":
 				_start_boss_event()
 			"boss_defeated":
@@ -277,6 +282,9 @@ func _goal_text() -> String:
 	for id in req.get("kills", {}):
 		lines.append("%s 처치  %d/%d" % [Data.creature(id).get("name", id), board.kill_count(id), int(req["kills"][id])])
 	lines.append("잉어 처치  %d" % board.kill_count("carp"))
+	var rock_bonus: Dictionary = Data.creature("rock").get("kill_bonus", {})
+	if not rock_bonus.is_empty():
+		lines.append("바위 스택  %d/%d" % [int(board.kill_stacks.get("rock", 0)), int(rock_bonus.get("every", 5))])
 	return "\n".join(lines)
 
 
@@ -300,6 +308,9 @@ func _draw() -> void:
 		for cell in ef["cells"]:
 			draw_rect(_cell_rect(cell), color)
 
+	for c in board.creatures:
+		if board.is_coilable(c):
+			_draw_coil_zone(c)
 	for food in board.foods:
 		_draw_food(food)
 	for c in board.creatures:
@@ -316,9 +327,26 @@ func _draw() -> void:
 	draw_rect(Rect2(BOARD_ORIGIN, board_px), Color(1, 1, 1, 0.35), false, 1.0)
 
 
+## 똬리틀기 대상 주변: 몸으로 감싸야 하는 범위를 옅게 표시
+func _draw_coil_zone(c: Dictionary) -> void:
+	var r: int = board.coil_range(c)
+	var top_left: Vector2i = c["pos"] - Vector2i(r, r)
+	var cells := int(c["size"]) + r * 2
+	var rect := Rect2(BOARD_ORIGIN + Vector2(top_left) * CELL, Vector2(cells, cells) * CELL)
+	rect = rect.intersection(Rect2(BOARD_ORIGIN, Vector2(board.width, board.height) * CELL))
+	draw_rect(rect, Color(1, 1, 1, 0.05))
+	draw_rect(rect, Color(1, 1, 1, 0.18), false, 1.0)
+
+
 func _draw_food(food: Dictionary) -> void:
 	var def: Dictionary = food["def"]
 	var rect := _cell_rect(food["pos"]).grow(-3)
+	var change: Dictionary = def.get("transform", {})
+	if not change.is_empty():
+		# 변하기 4초 전부터 깜빡임
+		var left := float(change.get("after_ms", 15000)) - float(food.get("age_ms", 0.0))
+		if left < 4000.0 and int(left / 150.0) % 2 == 0:
+			return
 	draw_rect(rect, Color(def.get("color", "#7ed957")))
 	draw_rect(Rect2(rect.position + Vector2(2, 2), Vector2(3, 3)), Color(1, 1, 1, 0.5))
 	if def.has("label"):
@@ -334,10 +362,13 @@ func _draw_creature(c: Dictionary) -> void:
 	var rect := Rect2(BOARD_ORIGIN + Vector2(c["pos"]) * CELL, Vector2(size, size) * CELL)
 	var o := rect.position
 	match def.get("shape", "block"):
-		"claws":  # 가재: 몸통 + 양쪽 집게
+		"claws":  # 가재: 몸통 + 양쪽 집게 (집게를 까딱거림)
+			var snap := 1.0 if int(Time.get_ticks_msec() / 300) % 2 == 0 else 0.0
 			draw_rect(Rect2(o + Vector2(4, 5), Vector2(8, 9)), color)
-			draw_rect(Rect2(o + Vector2(1, 1), Vector2(4, 4)), color)
-			draw_rect(Rect2(o + Vector2(11, 1), Vector2(4, 4)), color)
+			draw_rect(Rect2(o + Vector2(1 + snap, 1 + snap), Vector2(4, 4)), color)
+			draw_rect(Rect2(o + Vector2(11 - snap, 1 + snap), Vector2(4, 4)), color)
+			draw_rect(Rect2(o + Vector2(6, 7), Vector2(1, 1)), Color("#10161c"))
+			draw_rect(Rect2(o + Vector2(9, 7), Vector2(1, 1)), Color("#10161c"))
 		"fish":  # 잉어: 몸통 + 꼬리
 			draw_rect(Rect2(o + Vector2(2, 4), Vector2(10, 8)), color)
 			draw_rect(Rect2(o + Vector2(11, 2), Vector2(4, 12)), color.darkened(0.2))
@@ -359,11 +390,25 @@ func _draw_creature(c: Dictionary) -> void:
 			draw_rect(Rect2(o + Vector2(12, 30), Vector2(24, 4)), color.darkened(0.5))
 			draw_line(o + Vector2(4, 28), o + Vector2(-6, 40), Color("#f1e6cf"), 2.0)
 			draw_line(o + Vector2(44, 28), o + Vector2(54, 40), Color("#f1e6cf"), 2.0)
-		_:  # 바위 등
-			draw_rect(rect.grow(-1), color)
+		"rock":  # 바위: 맞을수록 금이 늘고 조금씩 부스러짐
+			var damage := int(c["max_hp"]) - int(c["hp"])
+			var r := rect.grow(-1 - (1 if damage >= 3 else 0))
+			draw_rect(r, color)
 			draw_rect(Rect2(o + Vector2(3, 3), Vector2(4, 3)), color.lightened(0.25))
-	# 체력 숫자 (보스는 위쪽 막대로 따로 표시)
-	if not def.get("boss", false) and c["hp"] < c["max_hp"]:
+			var crack := color.darkened(0.55)
+			if damage >= 1:
+				draw_line(o + Vector2(8, 2), o + Vector2(6, 8), crack, 1.0)
+			if damage >= 2:
+				draw_line(o + Vector2(6, 8), o + Vector2(10, 13), crack, 1.0)
+			if damage >= 3:
+				draw_line(o + Vector2(6, 8), o + Vector2(2, 11), crack, 1.0)
+			if damage >= 4:
+				draw_line(o + Vector2(10, 5), o + Vector2(14, 9), crack, 1.0)
+				draw_rect(Rect2(o + Vector2(12, 12), Vector2(2, 2)), Color(stage.get("background_color", "#1d3b4a")))
+		_:
+			draw_rect(rect.grow(-1), color)
+	# 체력 숫자 (보스는 위쪽 막대로, 바위는 금으로 보여 줌)
+	if not def.get("boss", false) and def.get("shape", "") != "rock" and c["hp"] < c["max_hp"]:
 		draw_string(_font, o + Vector2(0, 7), str(c["hp"]), HORIZONTAL_ALIGNMENT_RIGHT, rect.size.x, 8, Color.WHITE)
 
 
@@ -371,10 +416,13 @@ func _draw_snake() -> void:
 	var head_color := Color(_character.get("head_color", "#e8d36a"))
 	var body_color := Color(_character.get("body_color", "#b59f3b"))
 	var blink := board.invincible_ms > 0.0 and int(board.invincible_ms / 80.0) % 2 == 0
+	var passing := board.is_passing_through()  # 똬리틀기 직후: 몸을 통과해도 되는 동안 몸이 반투명
 	for i in range(board.segments.size() - 1, -1, -1):
 		var color := head_color if i == 0 else body_color
 		if blink:
 			color = Color.WHITE
+		elif passing and i > 0:
+			color.a = 0.55
 		draw_rect(_cell_rect(board.segments[i]).grow(-1), color)
 	var head_rect := _cell_rect(board.segments[0])
 	var c := head_rect.get_center()

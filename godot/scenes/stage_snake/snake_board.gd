@@ -10,6 +10,9 @@ extends RefCounted
 ##
 ## 판 위의 장애물(바위, 가재)과 적(잉어, 장어, 진주조개, 대왕메기)은 모두 "생물(creature)" 하나로 다룹니다.
 ## 각자의 행동(움직임, 공격, 체력, 떨어뜨리는 먹이)은 obstacles.json / enemies.json 에 적혀 있습니다.
+##
+## 똬리틀기: "coil" 이 있는 생물(가재, 진주조개)은 독침이 안 통하고, 뱀이 몸으로 둘러싸 가둬야 없어집니다.
+## 가두는 순간 뱀은 자기 몸을 한 번 통과해도 죽지 않습니다 (빠져나올 수 있게).
 
 const SAFE_DISTANCE_FROM_HEAD := 4
 const MAX_QUEUED_TURNS := 2
@@ -44,6 +47,7 @@ var venom_damage := 1
 var scale_wave_damage := 5
 var cintamani_owned: Dictionary = {}       # 쓸 수 있는 개수
 var cintamani_collected: Dictionary = {}   # 지금까지 얻은 총 개수 (보스 조건용)
+var kill_stacks: Dictionary = {}           # {"rock": 3} — "N개 부술 때마다 보너스" 용 스택
 var invincible_ms := 0.0
 var boss_announced := false
 var boss_spawned := false
@@ -60,6 +64,10 @@ var _events: Array = []
 var _spawn_timer_ms := 0.0
 var _venom_cooldown_ms := 0.0
 var _reward_granted: Array = []
+var _food_timers: Array = []         # stages.json food_spawns 마다 남은 시간
+var _pass_through_ticks := 0         # 똬리틀기 직후 자기 몸을 통과해도 되는 남은 틱
+var _passed_through := false         # 그 사이 실제로 몸을 통과했는지
+var _coil_hint_sent := false
 
 
 func setup(stage: Dictionary, creature_defs: Dictionary, item_defs: Dictionary, skill_defs: Dictionary, seed_value := -1) -> void:
@@ -92,13 +100,19 @@ func setup(stage: Dictionary, creature_defs: Dictionary, item_defs: Dictionary, 
 
 	for entry in stage.get("initial_obstacles", []):
 		for n in int(entry.get("count", 1)):
-			var pos := _find_free_cell(1, true)
+			var id := str(entry.get("type", ""))
+			var pos := _find_spawn_cell(id, SAFE_DISTANCE_FROM_HEAD)
 			if pos.x < 0:
 				break
-			spawn_creature(str(entry.get("type", "")), pos)
+			spawn_creature(id, pos)
 
-	_refill_food()
-	_spawn_timer_ms = _random_spawn_delay()
+	for spawner in stage.get("food_spawns", []):
+		for n in int(spawner.get("initial", 0)):
+			var pos := _find_free_cell(1, false)
+			if pos.x >= 0:
+				_add_food(spawner["item"], pos)
+		_food_timers.append(_random_range(spawner.get("interval_ms", [3000, 6000])))
+	_spawn_timer_ms = _random_range(_stage.get("enemy_spawn", {}).get("interval_ms", [2000, 4000]))
 
 
 # ================================================================ 조회
@@ -180,19 +194,20 @@ func step() -> void:
 		_die("wall")
 		return
 
-	# 2) 자기 몸 (자라는 중이 아니면 꼬리 칸은 이번에 비켜나므로 괜찮음)
+	# 2) 자기 몸에 닿는지 (자라는 중이 아니면 꼬리 칸은 이번에 비켜나므로 괜찮음)
+	#    바로 죽이지 않고, 이동한 뒤 "똬리틀기로 무언가를 가뒀는지" 를 먼저 봅니다.
+	var self_hit := false
 	var body_end := segments.size() if pending_growth > 0 else segments.size() - 1
-	for i in body_end:
+	for i in range(1, body_end):
 		if segments[i] == new_head:
-			_die("self")
-			return
+			self_hit = true
+			break
 
 	# 3) 장애물/적에 머리를 박음
 	var hit := creature_at(new_head)
 	if not hit.is_empty() and invincible_ms <= 0.0:
-		if hit["def"].get("on_head_hit", "die") == "die":
-			_die("creature", hit["id"])
-			return
+		_die("creature", hit["id"])
+		return
 
 	# 4) 이동
 	segments.push_front(new_head)
@@ -201,20 +216,21 @@ func step() -> void:
 	else:
 		segments.pop_back()
 
-	# 5) 몸이 줄어드는 생물 (가재) — 물린 뒤 가재는 다른 곳으로 도망감
-	if not hit.is_empty() and invincible_ms <= 0.0:
-		var amount := int(hit["def"].get("shrink_amount", 1))
-		_events.append({"type": "hit", "by": hit["id"]})
-		if segments.size() <= amount:
-			_die("shrunk", hit["id"])
+	# 5) 똬리틀기: 몸으로 가둔 생물 제거 → 그 직후엔 자기 몸을 한 번 통과해도 됨
+	var captured := _check_coils()
+	if not captured.is_empty():
+		_pass_through_ticks = int(_stage.get("coil_pass_through_ticks", 20))
+		_passed_through = false
+	if self_hit:
+		if _pass_through_ticks <= 0:
+			_die("self")
 			return
-		for i in amount:
-			segments.pop_back()
-		var new_pos := _find_free_cell(hit["size"], true)
-		if new_pos.x < 0:
-			creatures.erase(hit)
-		else:
-			hit["pos"] = new_pos
+		_passed_through = true
+	elif _pass_through_ticks > 0:
+		# 몸을 통과해 빈 칸으로 나왔으면 끝, 아니면 시간이 지나면 끝
+		_pass_through_ticks = 0 if _passed_through else _pass_through_ticks - 1
+	for c in captured:
+		_kill_creature(c, "coil")
 
 	# 6) 먹이
 	var food_index := _food_index_at(new_head)
@@ -222,6 +238,8 @@ func step() -> void:
 		var food: Dictionary = foods[food_index]
 		foods.remove_at(food_index)
 		_eat(food)
+		if dead:
+			return
 
 	# 7) 머리가 적 투사체와 겹쳤는지
 	_check_projectiles_vs_snake()
@@ -229,23 +247,37 @@ func step() -> void:
 		return
 
 	max_length = maxi(max_length, segments.size() + pending_growth)
-	_refill_food()
+	_check_coil_hint()
 	_check_progress()
+
+
+## 지금 자기 몸 위를 지나가도 되는 상태인지 (그리기용)
+func is_passing_through() -> bool:
+	return _pass_through_ticks > 0
 
 
 func _eat(food: Dictionary) -> void:
 	var def: Dictionary = food["def"]
 	food_eaten += 1
 	pending_growth += int(def.get("grow", 0))
-	var shrink := int(def.get("shrink", 0))
-	for i in shrink:
-		if segments.size() <= 1:
-			break
-		segments.pop_back()
-	tick_ms = clampf(tick_ms + float(def.get("speed_ms", 0)), min_tick_ms, max_tick_ms)
+	_shrink(int(def.get("shrink", 0)))
+	_change_speed(float(def.get("speed_ms", 0)))
 	venom_damage += int(def.get("venom_damage", 0))
 	scale_wave_damage += int(def.get("scale_wave_damage", 0))
 	_events.append({"type": "ate", "item": food["id"]})
+
+
+## 꼬리부터 n칸 줄임 (최소 1칸은 남김)
+func _shrink(amount: int) -> void:
+	for i in amount:
+		if segments.size() <= 1:
+			break
+		segments.pop_back()
+
+
+## 틱 간격을 바꿈 (음수 = 빨라짐)
+func _change_speed(delta_ms: float) -> void:
+	tick_ms = clampf(tick_ms + delta_ms, min_tick_ms, max_tick_ms)
 
 
 # ================================================================ 프레임: 적, 투사체, 타이머
@@ -270,6 +302,7 @@ func update(delta_ms: float) -> void:
 	_update_projectiles(delta_ms)
 	if dead:
 		return
+	_update_food(delta_ms)
 	_update_spawning(delta_ms)
 	_check_progress()
 
@@ -278,13 +311,18 @@ func _update_movement(c: Dictionary, delta_ms: float) -> void:
 	var move: Dictionary = c["def"].get("move", {})
 	if move.is_empty():
 		return
+	# 속도: "speed" 가 "player_start" 면 뱀의 처음 속도, "player" 면 뱀의 지금 속도와 같음
 	var interval := float(move.get("interval_ms", 500))
-	var chasing := false
-	if move.get("ai", "") == "chase":
-		var range_cells := int(move.get("chase_range", 6))
-		if _distance_to_head(c) <= range_cells:
-			chasing = true
-			interval = float(move.get("chase_interval_ms", interval))
+	match move.get("speed", ""):
+		"player_start":
+			interval = start_tick_ms
+		"player":
+			interval = tick_ms
+	# ai "chase" 는 늘 쫓아옴. "wander" 는 chase_range 안에 뱀 머리가 들어오면 chase_speed_multiplier 배 빨라져 쫓아옴
+	var chasing: bool = move.get("ai", "") == "chase"
+	if move.has("chase_range") and _distance_to_head(c) <= int(move["chase_range"]):
+		chasing = true
+		interval /= maxf(float(move.get("chase_speed_multiplier", 1)), 0.01)
 	c["move_timer"] += delta_ms
 	if c["move_timer"] < interval:
 		return
@@ -300,8 +338,7 @@ func _update_movement(c: Dictionary, delta_ms: float) -> void:
 	c["pos"] = target
 	# 머리를 덮쳤는지
 	if _footprint_has(c, segments[0]) and invincible_ms <= 0.0:
-		if c["def"].get("on_head_hit", "die") == "die":
-			_die("creature", c["id"])
+		_die("creature", c["id"])
 
 
 func _pick_wander_dir(c: Dictionary) -> Vector2i:
@@ -331,39 +368,70 @@ func _pick_chase_dir(c: Dictionary) -> Vector2i:
 	return options[0]
 
 
+## 공격 방식 (shoot.pattern)
+##   "line"  : 뱀 머리가 이 생물의 가로/세로 줄에 들어오는 순간 그쪽으로 burst 발 연달아 발사 (진주조개, 장어)
+##   "cross" : interval_ms 마다 네 방향으로 동시에 (대왕메기)
 func _update_shooting(c: Dictionary, delta_ms: float) -> void:
 	var shoot: Dictionary = c["def"].get("shoot", {})
 	if shoot.is_empty():
 		return
-	c["shoot_timer"] += delta_ms
-	if c["shoot_timer"] < float(shoot.get("interval_ms", 1500)):
-		return
 	var center := _center_cell(c)
-	match shoot.get("pattern", "aligned"):
-		"aligned":  # 머리와 같은 줄(가로/세로)에 있을 때만 그쪽으로 쏨
-			var head := segments[0]
-			var dir := Vector2i.ZERO
-			if head.y == center.y:
-				dir = Vector2i(signi(head.x - center.x), 0)
-			elif head.x == center.x:
-				dir = Vector2i(0, signi(head.y - center.y))
-			if dir == Vector2i.ZERO:
-				return  # 줄이 맞을 때까지 기다림 (타이머는 그대로)
-			_spawn_enemy_projectile(c, center, dir, shoot)
-		"cross":  # 네 방향으로 동시에
-			for d in DIRS:
-				_spawn_enemy_projectile(c, center, d, shoot)
-	c["shoot_timer"] = 0.0
+	match shoot.get("pattern", "line"):
+		"line":
+			var dir := _line_dir_to_head(c)
+			var aligned := dir != Vector2i.ZERO
+			if aligned and not c.get("was_aligned", true) and int(c.get("burst_left", 0)) <= 0:
+				c["burst_left"] = int(shoot.get("burst", 1))
+				c["burst_dir"] = dir
+				c["shoot_timer"] = float(shoot.get("burst_interval_ms", 150))  # 첫 발은 바로
+			c["was_aligned"] = aligned
+			if int(c.get("burst_left", 0)) > 0:
+				c["shoot_timer"] += delta_ms
+				if c["shoot_timer"] >= float(shoot.get("burst_interval_ms", 150)):
+					c["shoot_timer"] = 0.0
+					c["burst_left"] -= 1
+					_spawn_enemy_projectile(c, center, c["burst_dir"], shoot)
+		"cross":
+			c["shoot_timer"] += delta_ms
+			if c["shoot_timer"] >= float(shoot.get("interval_ms", 1500)):
+				c["shoot_timer"] = 0.0
+				for d in DIRS:
+					_spawn_enemy_projectile(c, center, d, shoot)
+
+
+## 머리가 이 생물과 같은 가로/세로 줄에 있으면 그쪽 방향, 아니면 ZERO
+func _line_dir_to_head(c: Dictionary) -> Vector2i:
+	if segments.is_empty() or _footprint_has(c, segments[0]):
+		return Vector2i.ZERO
+	var head := segments[0]
+	var pos: Vector2i = c["pos"]
+	var s: int = c["size"]
+	var center := _center_cell(c)
+	if head.y >= pos.y and head.y < pos.y + s:
+		return Vector2i(signi(head.x - center.x), 0)
+	if head.x >= pos.x and head.x < pos.x + s:
+		return Vector2i(0, signi(head.y - center.y))
+	return Vector2i.ZERO
 
 
 func _spawn_enemy_projectile(c: Dictionary, center: Vector2i, dir: Vector2i, shoot: Dictionary) -> void:
 	var half := int(c["size"] / 2)
 	var start := center + dir * half
+	# 속도: speed_vs_venom 이 있으면 "독침 속도의 몇 배", 없으면 speed_cells_per_sec
+	var speed := float(shoot.get("speed_cells_per_sec", 8))
+	if shoot.has("speed_vs_venom"):
+		speed = float(_skill_defs.get("venom", {}).get("speed_cells_per_sec", 10)) * float(shoot["speed_vs_venom"])
+	# 몸에 맞았을 때: body_as_item 이 있으면 그 먹이를 먹은 것과 같은 만큼 줄어듦/느려짐
+	var shrink := int(shoot.get("body_shrink", 1))
+	var slow := 0.0
+	if shoot.has("body_as_item"):
+		var item: Dictionary = _item_defs.get(shoot["body_as_item"], {})
+		shrink = int(item.get("shrink", 0))
+		slow = float(item.get("speed_ms", 0))
 	projectiles.append({
-		"pos": Vector2(start), "cell": start, "dir": dir,
-		"speed": float(shoot.get("speed_cells_per_sec", 8)),
+		"pos": Vector2(start), "cell": start, "dir": dir, "speed": speed,
 		"owner": "enemy", "source": c["id"], "source_ref": c,
-		"body_shrink": int(shoot.get("body_shrink", 1)),
+		"body_shrink": shrink, "body_speed_ms": slow,
 		"color": shoot.get("color", "#ffffff"),
 	})
 
@@ -384,7 +452,10 @@ func _update_projectiles(delta_ms: float) -> void:
 			var target := creature_at(cell)
 			if not target.is_empty():
 				projectiles.erase(p)
-				damage_creature(target, p["damage"], "venom")
+				if _is_damage_immune(target):
+					target["flash_ms"] = 60.0  # 튕겨 나감 (피해 없음)
+				else:
+					damage_creature(target, p["damage"], "venom")
 		else:
 			var blocker := creature_at(cell)
 			if not blocker.is_empty() and blocker != p["source_ref"] and blocker["def"].get("blocks_projectiles", false):
@@ -408,12 +479,11 @@ func _check_projectiles_vs_snake() -> void:
 			_die("projectile", p["source"])
 			return
 		_events.append({"type": "hit", "by": p["source"]})
-		for i in int(p["body_shrink"]):
-			if segments.size() <= 1:
-				break
-			segments.pop_back()
+		_shrink(int(p["body_shrink"]))
+		_change_speed(float(p.get("body_speed_ms", 0)))
 
 
+## 적·장애물 등장. stages.json 의 enemy_spawn.table 에서 조건(길이, 종류별 최대 수)에 맞는 것 중 weight 비율로 고름
 func _update_spawning(delta_ms: float) -> void:
 	var spawn: Dictionary = _stage.get("enemy_spawn", {})
 	if spawn.is_empty():
@@ -423,30 +493,68 @@ func _update_spawning(delta_ms: float) -> void:
 	_spawn_timer_ms -= delta_ms
 	if _spawn_timer_ms > 0.0:
 		return
-	_spawn_timer_ms = _random_spawn_delay()
-	var alive := 0
-	for c in creatures:
-		if c["def"].get("category", "") == "enemy":
-			alive += 1
-	if alive >= int(spawn.get("max_alive", 6)):
+	_spawn_timer_ms = _random_range(spawn.get("interval_ms", [2000, 4000]))
+	if creatures.size() >= int(spawn.get("max_alive", 12)):
 		return
-	# 지금 조건(길이)에 맞는 적들 중에서 weight 비율로 하나 고름
 	var table: Array = []
 	for entry in spawn.get("table", []):
-		if length_gain() >= int(entry.get("min_length_gain", 0)):
-			table.append(entry)
+		if length_gain() < int(entry.get("min_length_gain", 0)):
+			continue
+		if entry.has("max") and count_alive(entry["type"]) >= int(entry["max"]):
+			continue
+		table.append(entry)
 	var pick := _weighted_pick(table)
 	if pick.is_empty():
 		return
-	var id: String = pick["type"]
-	var size := int(_creature_defs.get(id, {}).get("size", 1))
-	var pos := _find_free_cell(size, true, int(spawn.get("min_distance_from_head", 6)))
+	var pos := _find_spawn_cell(pick["type"], int(spawn.get("min_distance_from_head", 6)))
 	if pos.x >= 0:
-		spawn_creature(id, pos)
+		spawn_creature(pick["type"], pos)
 
 
-func _random_spawn_delay() -> float:
-	var range_ms: Array = _stage.get("enemy_spawn", {}).get("interval_ms", [2000, 4000])
+func count_alive(id: String) -> int:
+	var n := 0
+	for c in creatures:
+		if c["id"] == id:
+			n += 1
+	return n
+
+
+## 먹이: food_spawns 마다 정해진 간격으로 새로 생기고, transform 이 있는 먹이(갈색)는 오래 두면 다른 것으로 변함
+func _update_food(delta_ms: float) -> void:
+	var spawners: Array = _stage.get("food_spawns", [])
+	for i in spawners.size():
+		_food_timers[i] -= delta_ms
+		if _food_timers[i] > 0.0:
+			continue
+		var spawner: Dictionary = spawners[i]
+		_food_timers[i] = _random_range(spawner.get("interval_ms", [3000, 6000]))
+		if _count_food(spawner["item"]) >= int(spawner.get("max", 3)):
+			continue
+		var pos := _find_free_cell(1, true, 3)
+		if pos.x >= 0:
+			_add_food(spawner["item"], pos)
+	for food in foods.duplicate():
+		food["age_ms"] += delta_ms
+		var change: Dictionary = food["def"].get("transform", {})
+		if change.is_empty() or food["age_ms"] < float(change.get("after_ms", 15000)):
+			continue
+		foods.erase(food)
+		var into: String = change.get("into", "")
+		if _creature_defs.has(into) and not segments.has(food["pos"]) and creature_at(food["pos"]).is_empty():
+			spawn_creature(into, food["pos"])
+			_add_effect([food["pos"]], food["def"].get("color", "#ffffff"), 400.0)
+			_events.append({"type": "transformed", "item": food["id"], "into": into})
+
+
+func _count_food(item_id: String) -> int:
+	var n := 0
+	for f in foods:
+		if f["id"] == item_id:
+			n += 1
+	return n
+
+
+func _random_range(range_ms: Array) -> float:
 	return rng.randf_range(float(range_ms[0]), float(range_ms[1]))
 
 
@@ -462,7 +570,9 @@ func spawn_creature(id: String, pos: Vector2i) -> Dictionary:
 		"id": id, "def": def, "pos": pos, "size": int(def.get("size", 1)),
 		"hp": hp, "max_hp": hp, "move_timer": 0.0, "shoot_timer": 0.0, "flash_ms": 0.0,
 		"wander_dir": Vector2i.ZERO, "wander_left": 0,
+		"burst_left": 0, "burst_dir": Vector2i.ZERO, "enclosed": null,
 	}
+	c["was_aligned"] = _line_dir_to_head(c) != Vector2i.ZERO  # 생기자마자 쏘지 않게
 	creatures.append(c)
 	return c
 
@@ -471,7 +581,7 @@ func spawn_boss() -> void:
 	var boss_info: Dictionary = _stage.get("boss", {})
 	var id: String = boss_info.get("type", "")
 	var size := int(_creature_defs.get(id, {}).get("size", 1))
-	var pos := _find_free_cell(size, true, 8)
+	var pos := _find_spawn_cell(id, 8)
 	if pos.x < 0:
 		pos = _find_free_cell(size, false)
 	if pos.x < 0:
@@ -495,16 +605,17 @@ func _kill_creature(c: Dictionary, by: String) -> void:
 	kills[id] = kill_count(id) + 1
 	var def: Dictionary = c["def"]
 	var center := _center_cell(c)
-	# 떨어뜨리는 먹이 (weight 비율로 하나, "" 는 아무것도 안 나옴)
+	# 떨어뜨리는 먹이: drops 중 weight 비율로 하나. items 가 비어 있으면 아무것도 안 나옴
 	var drop := _weighted_pick(def.get("drops", []))
-	if not drop.is_empty() and str(drop.get("item", "")) != "":
-		spawn_item_near(drop["item"], center)
-	# N마리마다 주는 보너스 먹이
+	if not drop.is_empty():
+		_place_items(drop.get("items", []), drop.get("place", "here"), center)
+	# N개(마리) 부술 때마다 주는 보너스 먹이 (스택)
 	var bonus: Dictionary = def.get("kill_bonus", {})
-	if not bonus.is_empty() and kill_count(id) % int(bonus.get("every", 5)) == 0:
-		var pos := _find_free_cell(1, false)
-		if pos.x >= 0:
-			_add_food(bonus["item"], pos)
+	if not bonus.is_empty():
+		kill_stacks[id] = int(kill_stacks.get(id, 0)) + 1
+		if kill_stacks[id] >= int(bonus.get("every", 5)):
+			kill_stacks[id] = 0
+			_place_items([bonus["item"]], bonus.get("place", "random"), center)
 	_add_effect(footprint(c), def.get("color", "#ffffff"), 260.0)  # 쓰러질 때 잠깐 번쩍
 	_events.append({"type": "killed", "id": id, "by": by, "pos": center})
 	if def.get("boss", false):
@@ -555,8 +666,8 @@ func scale_wave() -> void:
 				if in_bounds(p):
 					cells[p] = true
 	for c in creatures.duplicate():
-		if c["def"].get("category", "") == "terrain":
-			continue  # 바위는 비늘파동으로 안 부서짐
+		if c["def"].get("category", "") == "terrain" or _is_damage_immune(c):
+			continue  # 바위는 비늘파동으로 안 부서지고, 똬리틀기 전용은 아예 피해 없음
 		if _footprint_touches(c, cells):
 			damage_creature(c, scale_wave_damage, "scale_wave")
 	invincible_ms = float(def.get("invincible_ms", 800))
@@ -589,7 +700,7 @@ func use_cintamani(element: String) -> bool:
 				cells[p] = true
 		k += 1
 	for c in creatures.duplicate():
-		if _footprint_touches(c, cells):
+		if _footprint_touches(c, cells) and not _is_damage_immune(c):
 			damage_creature(c, int(def.get("damage", 30)), "cintamani_" + element)
 	_add_effect(cells.keys(), def.get("color", "#ff6b3d"), 320.0)
 	_events.append({"type": "skill", "id": "cintamani_" + element})
@@ -636,37 +747,43 @@ func _die(reason: String, by := "") -> void:
 
 # ================================================================ 먹이
 
-func _refill_food() -> void:
-	var types: Array = _stage.get("food_types", ["food"])
-	if types.is_empty():
+## 먹이 여러 개를 놓음. place 가 "here" 면 pos 자리(와 바로 옆에 붙여서), "random" 이면 맵의 아무 빈 곳
+func _place_items(item_ids: Array, place: String, pos: Vector2i) -> void:
+	if item_ids.is_empty():
 		return
-	var ambient := 0
-	for f in foods:
-		if types.has(f["id"]):
-			ambient += 1
-	while ambient < int(_stage.get("food_max", 3)):
-		var pos := _find_free_cell(1, false)
-		if pos.x < 0:
+	var at := Vector2i(-1, -1)
+	if place == "here":
+		at = _free_cell_near(pos)
+	if at.x < 0:
+		at = _find_free_cell(1, false)
+	if at.x < 0:
+		return
+	_add_food(item_ids[0], at)
+	for i in range(1, item_ids.size()):
+		var next := Vector2i(-1, -1)
+		for d in DIRS:  # 첫 번째 먹이에 바로 붙여서
+			if in_bounds(at + d) and not is_occupied(at + d):
+				next = at + d
+				break
+		if next.x < 0:
+			next = _free_cell_near(at)
+		if next.x < 0:
 			return
-		_add_food(types[rng.randi_range(0, types.size() - 1)], pos)
-		ambient += 1
+		_add_food(item_ids[i], next)
 
 
-func spawn_item_near(item_id: String, pos: Vector2i) -> void:
+func _free_cell_near(pos: Vector2i) -> Vector2i:
 	for r in range(0, 3):
 		for dy in range(-r, r + 1):
 			for dx in range(-r, r + 1):
 				var p := pos + Vector2i(dx, dy)
 				if in_bounds(p) and not is_occupied(p):
-					_add_food(item_id, p)
-					return
-	var any := _find_free_cell(1, false)
-	if any.x >= 0:
-		_add_food(item_id, any)
+					return p
+	return Vector2i(-1, -1)
 
 
 func _add_food(item_id: String, pos: Vector2i) -> void:
-	foods.append({"pos": pos, "id": item_id, "def": _item_defs.get(item_id, {})})
+	foods.append({"pos": pos, "id": item_id, "def": _item_defs.get(item_id, {}), "age_ms": 0.0})
 
 
 func _food_index_at(p: Vector2i) -> int:
@@ -738,10 +855,122 @@ func _can_creature_stand(c: Dictionary, target: Vector2i) -> bool:
 	return true
 
 
-func _find_free_cell(size: int, keep_away_from_head: bool, min_distance := SAFE_DISTANCE_FROM_HEAD) -> Vector2i:
+# ================================================================ 똬리틀기
+
+func is_coilable(c: Dictionary) -> bool:
+	return c["def"].has("coil")
+
+
+func coil_range(c: Dictionary) -> int:
+	return int(c["def"].get("coil", {}).get("range", 3))
+
+
+func _is_damage_immune(c: Dictionary) -> bool:
+	return c["def"].get("damage_immune", false)
+
+
+## 몸으로 새로 가둔 생물 목록.
+## 판 가장자리에서 뱀 몸을 피해 갈 수 있는 칸을 모두 칠하고(flood fill), 칠해지지 않은 칸 = 갇힌 칸.
+## 조건: (1) 이번 틱에 "안 갇힘 → 갇힘" 으로 바뀜 (2) 머리가 그 생물 주변 range 칸 안
+##       (3) 갇힌 공간 전체가 그 생물 주변 range 칸 안 (멀리서 크게 두른 건 안 침)
+func _check_coils() -> Array:
+	var result: Array = []
+	var any := false
+	for c in creatures:
+		if is_coilable(c):
+			any = true
+	if not any:
+		return result
+	var body := {}
+	for s in segments:
+		body[s] = true
+	var outside := {}
+	var queue: Array[Vector2i] = []
+	for x in width:
+		for y in [0, height - 1]:
+			_flood_seed(Vector2i(x, y), body, outside, queue)
+	for y in height:
+		for x in [0, width - 1]:
+			_flood_seed(Vector2i(x, y), body, outside, queue)
+	while not queue.is_empty():
+		var p: Vector2i = queue.pop_back()
+		for d in DIRS:
+			_flood_seed(p + d, body, outside, queue)
+
+	for c in creatures:
+		if not is_coilable(c):
+			continue
+		var enclosed := true
+		for p in footprint(c):
+			if outside.has(p) or body.has(p):
+				enclosed = false
+		var was = c["enclosed"]
+		c["enclosed"] = enclosed
+		if not enclosed or was == null or was == true:
+			continue
+		var r := coil_range(c)
+		if _distance_to_footprint(c, segments[0]) > r:
+			continue
+		if _inside_region_fits(c, body, outside, r - 1):
+			result.append(c)
+	return result
+
+
+func _flood_seed(p: Vector2i, body: Dictionary, outside: Dictionary, queue: Array[Vector2i]) -> void:
+	if in_bounds(p) and not body.has(p) and not outside.has(p):
+		outside[p] = true
+		queue.append(p)
+
+
+## 생물이 갇힌 공간(뱀 몸 안쪽)이 생물에서 max_dist 칸 안에 다 들어가는지
+func _inside_region_fits(c: Dictionary, body: Dictionary, outside: Dictionary, max_dist: int) -> bool:
+	var seen := {}
+	var queue: Array[Vector2i] = footprint(c)
+	for p in queue:
+		seen[p] = true
+	while not queue.is_empty():
+		var p: Vector2i = queue.pop_back()
+		if _distance_to_footprint(c, p) > max_dist:
+			return false
+		for d in DIRS:
+			var n: Vector2i = p + d
+			if in_bounds(n) and not body.has(n) and not outside.has(n) and not seen.has(n):
+				seen[n] = true
+				queue.append(n)
+	return true
+
+
+func _distance_to_footprint(c: Dictionary, p: Vector2i) -> int:
+	var pos: Vector2i = c["pos"]
+	var s: int = c["size"]
+	var dx := maxi(0, maxi(pos.x - p.x, p.x - (pos.x + s - 1)))
+	var dy := maxi(0, maxi(pos.y - p.y, p.y - (pos.y + s - 1)))
+	return maxi(dx, dy)
+
+
+## 머리가 처음으로 똬리틀기 대상 근처에 갔을 때 한 번 설명을 띄우게 함
+func _check_coil_hint() -> void:
+	if _coil_hint_sent:
+		return
+	for c in creatures:
+		if is_coilable(c) and _distance_to_footprint(c, segments[0]) <= coil_range(c):
+			_coil_hint_sent = true
+			_events.append({"type": "coil_hint", "id": c["id"]})
+			return
+
+
+## 생물을 놓을 자리. 똬리틀기 대상은 가장자리에서 떨어뜨려서(감쌀 공간이 있게) 놓음
+func _find_spawn_cell(id: String, min_distance: int) -> Vector2i:
+	var def: Dictionary = _creature_defs.get(id, {})
+	var size := int(def.get("size", 1))
+	var margin := 2 if def.has("coil") else 0
+	return _find_free_cell(size, true, min_distance, margin)
+
+
+func _find_free_cell(size: int, keep_away_from_head: bool, min_distance := SAFE_DISTANCE_FROM_HEAD, margin := 0) -> Vector2i:
 	var head := segments[0]
 	for attempt in 400:
-		var p := Vector2i(rng.randi_range(0, width - size), rng.randi_range(0, height - size))
+		var p := Vector2i(rng.randi_range(margin, width - size - margin), rng.randi_range(margin, height - size - margin))
 		var ok := true
 		for dy in size:
 			for dx in size:

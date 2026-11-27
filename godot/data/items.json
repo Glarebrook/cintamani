@@ -11,7 +11,7 @@
 		"kind": "food",
 		"color": "#f5d742",
 		"grow": 1,
-		"speed_ms": -8,
+		"speed_ms": -50,
 		"tutorial": "food_speed_up"
 	},
 	"speed_down": {
@@ -19,7 +19,11 @@
 		"kind": "food",
 		"color": "#8b5a2b",
 		"shrink": 2,
-		"speed_ms": 8,
+		"speed_ms": 50,
+		"transform": {
+			"after_ms": 15000,
+			"into": "eel"
+		},
 		"tutorial": "food_speed_down"
 	},
 	"triple_growth": {
@@ -34,9 +38,7 @@
 		"name": "주황 먹이",
 		"kind": "food",
 		"color": "#ff9f43",
-		"grow": 1,
 		"venom_damage": 1,
-		"scale_wave_damage": 3,
 		"tutorial": "food_attack_up"
 	},
 	"cintamani_fire": {

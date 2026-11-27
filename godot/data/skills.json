@@ -3,7 +3,7 @@
 		"name": "독침",
 		"color": "#f5d742",
 		"damage": 1,
-		"speed_cells_per_sec": 22,
+		"speed_cells_per_sec": 10,
 		"cooldown_ms": 120,
 		"tutorial": "skill_venom"
 	},

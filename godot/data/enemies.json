@@ -4,10 +4,22 @@
 		"category": "enemy",
 		"color": "#e8893a",
 		"shape": "fish",
-		"hp": 3,
-		"on_head_hit": "die",
-		"move": { "ai": "wander", "interval_ms": 700 },
-		"kill_bonus": { "every": 5, "item": "triple_growth" },
+		"hp": 10,
+		"move": {
+			"ai": "wander",
+			"speed": "player_start",
+			"chase_range": 5,
+			"chase_speed_multiplier": 3
+		},
+		"drops": [
+			{
+				"items": [
+					"speed_up"
+				],
+				"weight": 1,
+				"place": "here"
+			}
+		],
 		"death_text": "잉어와 정면으로 부딪혔다."
 	},
 	"eel": {
@@ -15,27 +27,62 @@
 		"category": "enemy",
 		"color": "#5f8f4a",
 		"shape": "eel",
-		"hp": 4,
-		"on_head_hit": "die",
-		"move": { "ai": "chase", "interval_ms": 300, "chase_range": 6, "chase_interval_ms": 180 },
-		"drops": [
-			{ "item": "speed_up", "weight": 1 }
-		],
-		"death_text": "장어에게 물렸다."
+		"hp": 20,
+		"move": {
+			"ai": "chase",
+			"speed": "player"
+		},
+		"shoot": {
+			"pattern": "line",
+			"burst": 3,
+			"burst_interval_ms": 150,
+			"speed_vs_venom": 2,
+			"body_as_item": "speed_down",
+			"color": "#c9f07a"
+		},
+		"death_text": "장어에게 물렸다.",
+		"projectile_death_text": "장어가 쏜 물방울에 머리를 맞았다."
 	},
 	"pearl_clam": {
 		"name": "진주조개",
 		"category": "enemy",
 		"color": "#d9d2c3",
 		"shape": "clam",
-		"hp": 5,
-		"on_head_hit": "die",
-		"shoot": { "pattern": "aligned", "interval_ms": 1500, "speed_cells_per_sec": 8, "body_shrink": 1, "color": "#ffffff" },
+		"hp": 1,
+		"damage_immune": true,
+		"coil": {
+			"range": 3
+		},
+		"shoot": {
+			"pattern": "line",
+			"burst": 1,
+			"speed_vs_venom": 2,
+			"body_shrink": 2,
+			"color": "#ffffff"
+		},
 		"drops": [
-			{ "item": "food", "weight": 6 },
-			{ "item": "speed_up", "weight": 2 },
-			{ "item": "attack_up", "weight": 2 },
-			{ "item": "speed_down", "weight": 1 }
+			{
+				"items": [
+					"food"
+				],
+				"weight": 60,
+				"place": "here"
+			},
+			{
+				"items": [
+					"speed_up",
+					"attack_up"
+				],
+				"weight": 30,
+				"place": "here"
+			},
+			{
+				"items": [
+					"speed_down"
+				],
+				"weight": 10,
+				"place": "here"
+			}
 		],
 		"death_text": "진주조개에 머리를 박았다.",
 		"projectile_death_text": "진주에 머리를 맞았다."
@@ -48,9 +95,17 @@
 		"shape": "catfish",
 		"size": 3,
 		"hp": 60,
-		"on_head_hit": "die",
-		"move": { "ai": "chase", "interval_ms": 450, "chase_range": 99 },
-		"shoot": { "pattern": "cross", "interval_ms": 2600, "speed_cells_per_sec": 9, "body_shrink": 2, "color": "#9fd3ff" },
+		"move": {
+			"ai": "chase",
+			"interval_ms": 600
+		},
+		"shoot": {
+			"pattern": "cross",
+			"interval_ms": 2600,
+			"speed_cells_per_sec": 12,
+			"body_shrink": 2,
+			"color": "#9fd3ff"
+		},
 		"death_text": "대왕메기에게 삼켜졌다.",
 		"projectile_death_text": "대왕메기의 물줄기에 맞았다."
 	}

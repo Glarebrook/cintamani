@@ -4,15 +4,13 @@
 		"category": "terrain",
 		"color": "#8a8a8a",
 		"shape": "rock",
-		"hp": 3,
-		"on_head_hit": "die",
+		"hp": 5,
 		"blocks_projectiles": true,
-		"drops": [
-			{ "item": "food", "weight": 5 },
-			{ "item": "speed_down", "weight": 3 },
-			{ "item": "attack_up", "weight": 1 },
-			{ "item": "", "weight": 3 }
-		],
+		"kill_bonus": {
+			"every": 5,
+			"item": "triple_growth",
+			"place": "random"
+		},
 		"death_text": "바위에 머리를 박았다."
 	},
 	"crayfish": {
@@ -20,13 +18,24 @@
 		"category": "obstacle",
 		"color": "#d0503c",
 		"shape": "claws",
-		"hp": 2,
-		"on_head_hit": "shrink",
-		"shrink_amount": 2,
-		"move": { "ai": "wander", "interval_ms": 480 },
+		"hp": 1,
+		"damage_immune": true,
+		"coil": {
+			"range": 3
+		},
 		"drops": [
-			{ "item": "food", "weight": 1 }
+			{
+				"items": [
+					"attack_up"
+				],
+				"weight": 15,
+				"place": "random"
+			},
+			{
+				"items": [],
+				"weight": 85
+			}
 		],
-		"death_text": "가재에게 물려 몸이 다 없어졌다."
+		"death_text": "가재 집게에 머리를 박았다."
 	}
 }
