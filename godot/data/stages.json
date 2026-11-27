@@ -1,0 +1,30 @@
+{
+	"pond": {
+		"name": "연못",
+		"type": "snake",
+		"description": "이무기가 처음 눈을 뜬 작은 연못.",
+		"grid_size": [30, 20],
+		"start_length": 3,
+		"tick_ms": 160,
+		"min_tick_ms": 80,
+		"speed_up_per_food_ms": 4,
+		"food_max": 3,
+		"food_types": ["food"],
+		"obstacles": [
+			{ "type": "rock", "count": 8 },
+			{ "type": "crayfish", "count": 2 }
+		],
+		"clear_condition": { "length": 15 },
+		"background_color": "#1d3b4a",
+		"bgm": "pond",
+		"intro_dialogue": "pond_intro",
+		"clear_dialogue": "pond_clear",
+		"next_stage": "land"
+	},
+	"land": {
+		"name": "뭍",
+		"type": "rpg",
+		"description": "연못 밖의 땅. 자유롭게 움직이며 동물과 사람을 만나는 곳.",
+		"bgm": "land"
+	}
+}

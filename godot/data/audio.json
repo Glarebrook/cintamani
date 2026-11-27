@@ -1,0 +1,14 @@
+{
+	"bgm": {
+		"title": "res://assets/audio/bgm/title.ogg",
+		"pond": "res://assets/audio/bgm/pond.ogg",
+		"land": "res://assets/audio/bgm/land.ogg"
+	},
+	"sfx": {
+		"ui_select": "res://assets/audio/sfx/ui_select.wav",
+		"eat": "res://assets/audio/sfx/eat.wav",
+		"hit": "res://assets/audio/sfx/hit.wav",
+		"die": "res://assets/audio/sfx/die.wav",
+		"clear": "res://assets/audio/sfx/clear.wav"
+	}
+}

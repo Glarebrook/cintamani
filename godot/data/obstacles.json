@@ -1,0 +1,20 @@
+{
+	"rock": {
+		"name": "바위",
+		"color": "#8a8a8a",
+		"shape": "block",
+		"moves": false,
+		"on_hit": "die",
+		"death_text": "바위에 머리를 박았다."
+	},
+	"crayfish": {
+		"name": "가재",
+		"color": "#d0503c",
+		"shape": "claws",
+		"moves": true,
+		"move_every_ticks": 3,
+		"on_hit": "shrink",
+		"shrink_amount": 2,
+		"death_text": "가재에게 물려 몸이 다 없어졌다."
+	}
+}

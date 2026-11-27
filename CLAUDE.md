@@ -4,6 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
+**Update 2026-11-27 — Godot rewrite.** New development moves to a Godot 4 (GDScript) project in `godot/` (see `godot/README.md`, written in Korean for the collaborators). Everything below this note describes the *web prototype* at the repo root, which stays in place untouched (the NAS still serves it from `master`); its last pre-Godot state is commit `0229533`, intended to be tagged `prototype-v0`. The Godot project's own conventions: content lives in `godot/data/*.json` (read by the `Data` autoload), all saved progress is the single `GameState.data` dictionary (serialized by `SaveManager` to `user://save_1.json`), snake rules live in `scenes/stage_snake/snake_board.gd` separate from rendering/input, stage scene is chosen by the stage's `type` (`snake`/`rpg`) in `SceneManager.STAGE_SCENES`, base resolution 640x360 with integer scaling and nearest filtering. Headless check: `godot --headless --path godot --quit-after 120`. The BUILD_VERSION / `?v=` / patchNotes rules below apply to the web prototype only.
+
+
 Cintamani is a browser-based Snake game served as static files from a NAS web server (e.g. Synology Web Station, NGINX). There is no build step, no bundler, and no package manager — `index.html` is the entry point and is served as-is. The game logic is authored as native ES modules (`<script type="module">`), which requires zero tooling in any modern browser.
 
 The pre-rewrite V1 implementation (global `<script>` tags, no modules) is no longer in the working tree — it was kept in a `V1/` folder for reference/rollback for a while, then deleted once it stopped being useful. It's still recoverable from git history (it was committed) if ever needed; there's nothing on disk to avoid editing anymore.

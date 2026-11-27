@@ -1,0 +1,36 @@
+{
+	"food": {
+		"name": "먹이",
+		"kind": "food",
+		"color": "#7ed957",
+		"grow": 1
+	},
+	"cintamani_fire": {
+		"name": "불의 여의주",
+		"short": "불",
+		"kind": "cintamani",
+		"element": "fire",
+		"color": "#ff6b3d"
+	},
+	"cintamani_water": {
+		"name": "물의 여의주",
+		"short": "물",
+		"kind": "cintamani",
+		"element": "water",
+		"color": "#4aa8ff"
+	},
+	"cintamani_earth": {
+		"name": "흙의 여의주",
+		"short": "흙",
+		"kind": "cintamani",
+		"element": "earth",
+		"color": "#c8a25a"
+	},
+	"cintamani_wood": {
+		"name": "나무의 여의주",
+		"short": "나무",
+		"kind": "cintamani",
+		"element": "wood",
+		"color": "#4caf50"
+	}
+}
