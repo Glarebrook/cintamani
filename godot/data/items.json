@@ -1,0 +1,73 @@
+{
+	"food": {
+		"name": "초록 먹이",
+		"kind": "food",
+		"color": "#7ed957",
+		"grow": 1,
+		"tutorial": "food_food"
+	},
+	"speed_up": {
+		"name": "노란 먹이",
+		"kind": "food",
+		"color": "#f5d742",
+		"grow": 1,
+		"speed_ms": -50,
+		"tutorial": "food_speed_up"
+	},
+	"speed_down": {
+		"name": "갈색 먹이",
+		"kind": "food",
+		"color": "#8b5a2b",
+		"shrink": 2,
+		"speed_ms": 50,
+		"transform": {
+			"after_ms": 15000,
+			"into": "eel"
+		},
+		"tutorial": "food_speed_down"
+	},
+	"triple_growth": {
+		"name": "보라 먹이",
+		"kind": "food",
+		"color": "#a970ff",
+		"grow": 3,
+		"label": "x3",
+		"tutorial": "food_triple_growth"
+	},
+	"attack_up": {
+		"name": "주황 먹이",
+		"kind": "food",
+		"color": "#ff9f43",
+		"venom_damage": 1,
+		"tutorial": "food_attack_up"
+	},
+	"cintamani_fire": {
+		"name": "불의 여의주",
+		"short": "불",
+		"kind": "cintamani",
+		"element": "fire",
+		"color": "#ff6b3d",
+		"key": "A"
+	},
+	"cintamani_water": {
+		"name": "물의 여의주",
+		"short": "물",
+		"kind": "cintamani",
+		"element": "water",
+		"color": "#4aa8ff"
+	},
+	"cintamani_earth": {
+		"name": "흙의 여의주",
+		"short": "흙",
+		"kind": "cintamani",
+		"element": "earth",
+		"color": "#c8a25a"
+	},
+	"cintamani_wood": {
+		"name": "나무의 여의주",
+		"short": "나무",
+		"kind": "cintamani",
+		"element": "wood",
+		"color": "#4caf50"
+	}
+}

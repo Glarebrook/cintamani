@@ -1,0 +1,27 @@
+{
+	"venom": {
+		"name": "독침",
+		"color": "#f5d742",
+		"damage": 1,
+		"speed_cells_per_sec": 10,
+		"cooldown_ms": 120,
+		"tutorial": "skill_venom"
+	},
+	"scale_wave": {
+		"name": "비늘파동",
+		"color": "#ffffff",
+		"charge_ms": 1000,
+		"radius": 3,
+		"damage": 5,
+		"invincible_ms": 800,
+		"tutorial": "skill_scale_wave"
+	},
+	"fire_breath": {
+		"name": "불의 여의주 (화염)",
+		"element": "fire",
+		"color": "#ff6b3d",
+		"width": 3,
+		"damage": 30,
+		"tutorial": "cintamani_fire"
+	}
+}

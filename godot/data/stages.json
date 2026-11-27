@@ -1,0 +1,117 @@
+{
+	"pond": {
+		"name": "연못",
+		"type": "snake",
+		"description": "이무기가 처음 눈을 뜬 작은 연못.",
+		"grid_size": [
+			28,
+			20
+		],
+		"start_length": 3,
+		"tick_ms": 500,
+		"min_tick_ms": 150,
+		"max_tick_ms": 800,
+		"speed_level_step_ms": 50,
+		"coil_pass_through_ticks": 20,
+		"food_spawns": [
+			{
+				"item": "food",
+				"initial": 3,
+				"interval_ms": [
+					3000,
+					6000
+				],
+				"max": 4
+			},
+			{
+				"item": "speed_down",
+				"initial": 0,
+				"interval_ms": [
+					25000,
+					40000
+				],
+				"max": 1
+			}
+		],
+		"initial_obstacles": [
+			{
+				"type": "rock",
+				"count": 8
+			},
+			{
+				"type": "crayfish",
+				"count": 2
+			}
+		],
+		"enemy_spawn": {
+			"interval_ms": [
+				4000,
+				7000
+			],
+			"max_alive": 14,
+			"min_distance_from_head": 6,
+			"stop_during_boss": true,
+			"table": [
+				{
+					"type": "carp",
+					"weight": 6,
+					"max": 4
+				},
+				{
+					"type": "rock",
+					"weight": 3,
+					"max": 8
+				},
+				{
+					"type": "crayfish",
+					"weight": 1,
+					"max": 2
+				},
+				{
+					"type": "pearl_clam",
+					"weight": 2,
+					"max": 2,
+					"min_length_gain": 5
+				}
+			]
+		},
+		"skill_unlocks": {
+			"venom": {
+				"length_gain": 5
+			},
+			"scale_wave": {
+				"kills": {
+					"carp": 5
+				}
+			}
+		},
+		"cintamani_rewards": [
+			{
+				"element": "fire",
+				"every_kills": {
+					"carp": 10
+				}
+			}
+		],
+		"boss": {
+			"type": "giant_catfish",
+			"requires": {
+				"cintamani_collected": {
+					"fire": 10
+				},
+				"length_gain": 50
+			},
+			"appear_dialogue": "pond_boss_appear",
+			"defeat_dialogue": "pond_clear"
+		},
+		"background_color": "#1d3b4a",
+		"bgm": "pond",
+		"next_stage": "land"
+	},
+	"land": {
+		"name": "뭍",
+		"type": "rpg",
+		"description": "연못 밖의 땅. 자유롭게 움직이며 동물과 사람을 만나는 곳.",
+		"bgm": "land"
+	}
+}
